@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Calculadora Pónchon-Savarit v2</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0f1923;color:#e0e6f0;min-height:100vh;}
+.app{max-width:1500px;margin:0 auto;padding:20px;}
+.header{text-align:center;padding:24px 0 18px;}
+.header h1{font-size:26px;color:#7eb8f7;letter-spacing:1px;}
+.header .sub{font-size:13px;color:#8899aa;margin-top:4px;}
+.byline{font-size:12px;color:#556677;margin-top:6px;}
+.card{background:#162030;border:1px solid #1e3048;border-radius:12px;padding:20px;margin-bottom:16px;}
+.card-title{font-size:13px;font-weight:bold;color:#7eb8f7;border-left:3px solid #7eb8f7;padding-left:10px;margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px;}
+.sys-grid{display:flex;gap:8px;flex-wrap:wrap;}
+.sys-btn{padding:10px 16px;border:2px solid #1e3048;border-radius:8px;background:#0f1923;cursor:pointer;color:#aabbcc;font-size:12px;font-weight:bold;transition:all .18s;white-space:nowrap;}
+.sys-btn:hover{border-color:#7eb8f7;color:#e0e6f0;}
+.sys-btn.activo{border-color:#4a9eff;background:#1a2d45;color:#7eb8f7;}
+.sys-btn.azeo-btn{border-color:#ff6b6b44;}
+.sys-btn.azeo-btn.activo{border-color:#ff6b6b;background:#2d1a1a;color:#ff9999;}
+.sys-btn.manual-btn{border-color:#f0a50044;}
+.sys-btn.manual-btn.activo{border-color:#f0a500;background:#2d2200;color:#f0c060;}
+.inputs-row{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:flex-end;margin:8px 0;}
+.inp-group{display:flex;flex-direction:column;gap:3px;}
+.inp-group label{font-size:11px;color:#7888a0;}
+input[type=number],input[type=text],select{padding:7px 10px;background:#0f1923;border:1px solid #2a3f55;border-radius:6px;color:#e0e6f0;font-size:13px;width:120px;}
+input[type=text]{width:150px;}
+input:focus,select:focus{outline:none;border-color:#7eb8f7;}
+select{width:auto;}
+.alert{border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.6;margin:8px 0;}
+.alert-info{background:#0d2035;border:1px solid #1e4d7a;color:#7eb8f7;}
+.alert-warn{background:#2a1f00;border:1px solid #7a5500;color:#f0c060;}
+.alert-azeot{background:#2a0d0d;border:1px solid #7a2020;color:#ff9999;}
+.tbl-manual table{border-collapse:collapse;font-size:12px;width:100%;}
+.tbl-manual th{background:#1a2d45;color:#7eb8f7;padding:6px 10px;text-align:center;border:1px solid #2a3f55;}
+.tbl-manual td{padding:4px 6px;border:1px solid #1e3048;text-align:center;}
+.tbl-manual input{width:85px;padding:4px;background:#0f1923;border:1px solid #2a3f55;border-radius:4px;color:#e0e6f0;font-size:12px;}
+.btn-sm{padding:5px 12px;font-size:12px;border:none;border-radius:5px;cursor:pointer;margin:2px;}
+.btn-add{background:#1a4d2e;color:#4caf50;} .btn-add:hover{background:#1e6035;}
+.btn-del{background:#4d1a1a;color:#f44336;} .btn-del:hover{background:#6d2020;}
+.calc-btn{padding:12px 32px;background:#1a4d7a;color:#7eb8f7;border:2px solid #4a9eff;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer;transition:all .2s;margin-top:16px;}
+.calc-btn:hover{background:#2a6daa;color:#fff;}
+.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+@media(max-width:900px){.results-grid{grid-template-columns:1fr;}}
+.res-card{background:#162030;border:1px solid #1e3048;border-radius:10px;padding:16px;}
+.res-title{font-size:12px;font-weight:bold;color:#7eb8f7;margin-bottom:10px;border-bottom:1px solid #1e3048;padding-bottom:6px;}
+.res-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #0f1923;}
+.res-row .lbl{color:#7888a0;} .res-row .val{color:#e0e6f0;font-weight:bold;}
+.res-row .val.good{color:#4caf50;} .res-row .val.warn{color:#f0c060;} .res-row .val.hi{color:#ff9999;}
+.chart-container{background:#162030;border:1px solid #1e3048;border-radius:12px;padding:20px;margin-top:16px;}
+.chart-title{font-size:14px;font-weight:bold;color:#7eb8f7;margin-bottom:14px;text-align:center;}
+canvas{border-radius:8px;background:#0a1520;}
+.step-label{font-size:12px;font-weight:bold;color:#4a9eff;text-transform:uppercase;letter-spacing:.8px;margin:16px 0 8px;display:flex;align-items:center;gap:8px;}
+.step-label::after{content:'';flex:1;height:1px;background:#1e3048;}
+.qc-override{background:#0f1923;border:1px solid #2a3f55;border-radius:8px;padding:12px;margin-top:10px;display:none;}
+.qc-override.visible{display:block;}
+.diagrama-wrap{display:flex;justify-content:center;padding:10px 0;}
+/* Tabs for extreme cases */
+.tab-bar{display:flex;gap:8px;margin-bottom:12px;}
+.tab-btn{padding:8px 18px;border:1px solid #2a3f55;border-radius:6px;background:#0f1923;color:#7888a0;font-size:12px;font-weight:bold;cursor:pointer;transition:all .18s;}
+.tab-btn.activo{border-color:#7eb8f7;background:#1a2d45;color:#7eb8f7;}
+.tab-panel{display:none;} .tab-panel.visible{display:block;}
+
+/* === LICENCIAS === */
+#pantallaActivacion{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0a1018,#0f1923);display:flex;align-items:center;justify-content:center;}
+#pantallaActivacion.oculto{display:none;}
+.act-card{background:#162030;border:1px solid #4a9eff;border-radius:14px;padding:40px 44px;max-width:480px;width:90%;box-shadow:0 0 40px rgba(74,158,255,0.15);text-align:center;}
+.act-titulo{font-size:20px;font-weight:bold;color:#7eb8f7;margin-bottom:4px;}
+.act-sub{font-size:12px;color:#556677;margin-bottom:20px;}
+.act-badge{display:inline-block;background:rgba(74,158,255,0.1);border:1px solid #4a9eff;border-radius:20px;padding:4px 14px;font-size:12px;color:#7eb8f7;margin-bottom:18px;}
+.act-input{width:100%;padding:12px;font-size:14px;background:#0f1923;border:1px solid #1e3048;border-radius:8px;color:#e0e6f0;text-align:center;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;outline:none;}
+.act-input:focus{border-color:#4a9eff;}
+.act-btn{width:100%;padding:12px;font-size:14px;font-weight:bold;background:#1a4d7a;color:#7eb8f7;border:2px solid #4a9eff;border-radius:8px;cursor:pointer;}
+.act-btn:disabled{opacity:0.6;cursor:wait;}
+.act-error{font-size:12px;color:#f44336;margin-top:8px;min-height:20px;}
+.act-licencia{font-size:11px;color:#556677;margin-top:16px;line-height:1.8;}
+#badgeLicencia{display:inline-flex;align-items:center;background:rgba(76,175,80,0.15);border:1px solid #4caf50;border-radius:20px;padding:3px 12px;font-size:11px;color:#4caf50;font-weight:bold;margin-left:10px;}
+#btnCerrarSesion{display:none;margin-left:8px;padding:3px 10px;font-size:10px;background:rgba(244,67,54,0.1);color:#f44336;border:1px solid #f44336;border-radius:12px;cursor:pointer;}
+#panelAdmin{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;}
+#panelAdmin.visible{display:flex;}
+.admin-card{background:#162030;border:1px solid #4a9eff;border-radius:14px;padding:28px 32px;max-width:680px;width:95%;max-height:85vh;overflow-y:auto;}
+.admin-titulo{font-size:15px;font-weight:bold;color:#7eb8f7;margin-bottom:4px;}
+.admin-sub{font-size:11px;color:#556677;margin-bottom:16px;}
+.admin-tabla{width:100%;border-collapse:collapse;font-size:12px;}
+.admin-tabla th{background:#1a2d45;color:#7eb8f7;padding:7px 10px;text-align:left;border-bottom:1px solid #1e3048;}
+.admin-tabla td{border-bottom:1px solid #1e3048;padding:6px 10px;color:#c8d8e8;}
+.tag-activa{background:rgba(76,175,80,0.2);color:#4caf50;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:bold;}
+.tag-inactiva{background:rgba(244,67,54,0.2);color:#f44336;border-radius:4px;padding:2px 8px;font-size:10px;}
+.admin-nueva{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.admin-nueva input{flex:1;min-width:120px;padding:7px 10px;font-size:12px;background:#0f1923;border:1px solid #1e3048;color:#e0e6f0;border-radius:6px;}
+.admin-nueva input:focus{outline:none;border-color:#4a9eff;}
+.btn-admin-add{padding:7px 14px;background:#1a4d2e;color:#4caf50;border:none;border-radius:6px;cursor:pointer;font-weight:bold;}
+.btn-admin-del{background:none;border:none;color:#f44336;cursor:pointer;font-size:14px;padding:2px 4px;}
+.btn-cerrar-admin{float:right;padding:5px 12px;background:#0f1923;border:1px solid #1e3048;color:#c8d8e8;border-radius:6px;cursor:pointer;font-size:12px;}
+#modalAdminAcceso{display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;}
+</style>
+</head>
+<body>
+
+<div id="pantallaActivacion">
+  <div class="act-card">
+    <div style="font-size:46px;margin-bottom:10px;">&#9879;&#65039;</div>
+    <div class="act-titulo">Calculadora P&oacute;nchon-Savarit</div>
+    <div class="act-sub">M&eacute;todo Ent&aacute;lpico Riguroso &mdash; Ingenier&iacute;a Qu&iacute;mica</div>
+    <div class="act-badge">&#128272; Requiere licencia de uso</div>
+    <input class="act-input" id="inputClave" type="text" maxlength="30"
+      placeholder="GS-XXXX-XXX-XXX-NXXX"
+      oninput="this.value=this.value.toUpperCase()"
+      onkeydown="if(event.key==='Enter')activarLicencia()">
+    <button class="act-btn" onclick="activarLicencia()">&#10003; Activar</button>
+    <div class="act-error" id="errorClave"></div>
+    <div class="act-licencia">Software educativo &mdash; Autor: <b style="color:#7eb8f7;">Gustavo S&aacute;nchez</b> &mdash; &copy; 2026<br>Uso personal, no exclusivo y no transferible.</div>
+  </div>
+</div>
+
+<div id="panelAdmin">
+  <div class="admin-card">
+    <button class="btn-cerrar-admin" onclick="cerrarAdmin()">&#10005; Cerrar</button>
+    <div class="admin-titulo">&#128737;&#65039; Panel de Administrador</div>
+    <div class="admin-sub">Gesti&oacute;n de licencias &mdash; Gustavo S&aacute;nchez &copy; 2026</div>
+    <table class="admin-tabla">
+      <thead><tr><th>#</th><th>Clave</th><th>Nombre</th><th>Inst.</th><th>Grupo</th><th>Estado</th><th></th></tr></thead>
+      <tbody id="tablaClaves"></tbody>
+    </table>
+    <div style="font-size:12px;font-weight:bold;color:#7eb8f7;margin-top:16px;margin-bottom:6px;">Nueva licencia</div>
+    <div class="admin-nueva">
+      <input id="newNombre" type="text" placeholder="Nombre" maxlength="30" oninput="prevClave()">
+      <input id="newInst" type="text" placeholder="Inst." maxlength="10" oninput="this.value=this.value.toUpperCase();prevClave()">
+      <input id="newGrupo" type="text" placeholder="Grupo" maxlength="8" oninput="this.value=this.value.toUpperCase();prevClave()">
+      <input id="newNum" type="number" placeholder="N" min="1" max="999" style="width:65px" oninput="prevClave()">
+      <button class="btn-admin-add" onclick="addClave()">+ Agregar</button>
+    </div>
+    <div id="prevClaveDiv" style="font-size:11px;color:#4a9eff;margin-top:6px;min-height:16px;"></div>
+    <div id="adminMsg" style="font-size:11px;margin-top:6px;min-height:16px;color:#4caf50;"></div>
+    <button onclick="exportClaves()" style="margin-top:10px;padding:6px 14px;background:#0f1923;color:#c8d8e8;border:1px solid #1e3048;border-radius:6px;cursor:pointer;font-size:11px;">&#128228; Exportar</button>
+  </div>
+</div>
+
+<div id="modalAdminAcceso">
+  <div style="background:#162030;border:1px solid #4a9eff;border-radius:14px;padding:28px 32px;max-width:320px;width:90%;text-align:center;">
+    <div style="font-size:26px;margin-bottom:8px;">&#128737;&#65039;</div>
+    <div style="font-weight:bold;font-size:14px;color:#7eb8f7;margin-bottom:4px;">Acceso Administrador</div>
+    <div style="font-size:11px;color:#556677;margin-bottom:14px;">Ingres&aacute; tu clave de administrador</div>
+    <input id="inputAdminAcceso" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
+      style="width:100%;padding:10px;background:#0f1923;border:1px solid #1e3048;color:#e0e6f0;border-radius:6px;text-align:center;outline:none;letter-spacing:4px;font-size:13px;margin-bottom:8px;"
+      onkeydown="if(event.key==='Enter')checkAdmin()"
+      onfocus="this.style.borderColor='#4a9eff'" onblur="this.style.borderColor='#1e3048'">
+    <div id="errorAdmin" style="color:#f44336;font-size:11px;min-height:16px;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <button onclick="closeAdminModal()" style="padding:7px 16px;background:#0f1923;border:1px solid #1e3048;color:#c8d8e8;border-radius:6px;cursor:pointer;font-size:12px;">Cancelar</button>
+      <button onclick="checkAdmin()" style="padding:7px 16px;background:#1a4d7a;color:#7eb8f7;border:2px solid #4a9eff;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+<div class="header">
+  <h1>⚗️ Calculadora Pónchon-Savarit</h1>
+  <div class="sub">Método entálpico rigoroso — Diagrama H-xy · Situaciones extremas · Comparación McCabe-Thiele</div>
+  <div class="byline">Autor: Gustavo S&aacute;nchez &nbsp;|&nbsp; A&ntilde;o: 2026 <span id="badgeLicencia"></span><button id="btnCerrarSesion" onclick="cerrarSesion()">&#9167; Cerrar sesi&oacute;n</button></div>
+</div>
+
+<!-- PASO 1 -->
+<div class="card">
+  <div class="card-title">Paso 1 — Sistema binario</div>
+  <div class="sys-grid">
+    <button class="sys-btn activo" id="btnHexHep" onclick="setSistema('hexhep')">Hexano/Heptano<br><span style="font-size:10px;color:#4caf50">Ideal</span></button>
+    <button class="sys-btn" id="btnHepOct" onclick="setSistema('hepoct')">Heptano/Octano<br><span style="font-size:10px;color:#4caf50">Ideal</span></button>
+    <button class="sys-btn" id="btnBenTol" onclick="setSistema('bentol')">Benceno/Tolueno<br><span style="font-size:10px;color:#4caf50">Ideal</span></button>
+    <button class="sys-btn azeo-btn" id="btnEtaAgua" onclick="setSistema('etaagua')">Etanol/Agua<br><span style="font-size:10px;color:#ff6b6b">Azeótropo 0.894</span></button>
+    <button class="sys-btn" id="btnMetAgua" onclick="setSistema('metagua')">Metanol/Agua<br><span style="font-size:10px;color:#7eb8f7">No ideal</span></button>
+    <button class="sys-btn manual-btn" id="btnManual" onclick="setSistema('manual')">✏️ Manual<br><span style="font-size:10px;color:#f0c060">Tu sistema</span></button>
+    <button class="sys-btn" id="btnTolXil" onclick="setSistema('tolxil')">Tolueno/Xileno<br><span style="font-size:10px;color:#4caf50">Ideal</span></button>
+    <button class="sys-btn" id="btnClorBen" onclick="setSistema('clorben')">Cloroformo/Benceno<br><span style="font-size:10px;color:#7eb8f7">No ideal</span></button>
+    <button class="sys-btn" id="btnHepNon" onclick="setSistema('hepnon')">Heptano/Nonano<br><span style="font-size:10px;color:#4caf50">Ideal</span></button>
+  </div>
+  <div id="infoSistema" class="alert alert-info" style="margin-top:12px;"></div>
+  <div id="panelManual" style="display:none;margin-top:14px;">
+    <div class="step-label">Componentes puros</div>
+    <div class="inputs-row">
+      <div class="inp-group"><label>Nombre comp 1 (volátil)</label><input id="m_n1" type="text" value="Comp 1"></div>
+      <div class="inp-group"><label>Nombre comp 2</label><input id="m_n2" type="text" value="Comp 2"></div>
+      <div class="inp-group"><label>Tb₁ (°C)</label><input id="m_tb1" type="number" step="0.1" value="80"></div>
+      <div class="inp-group"><label>Tb₂ (°C)</label><input id="m_tb2" type="number" step="0.1" value="110"></div>
+    </div>
+    <div class="inputs-row">
+      <div class="inp-group"><label>ΔHvap₁ (kJ/kmol)</label><input id="m_dh1" type="number" value="30000"></div>
+      <div class="inp-group"><label>ΔHvap₂ (kJ/kmol)</label><input id="m_dh2" type="number" value="33000"></div>
+      <div class="inp-group"><label>CpL₁ (kJ/kmol·K)</label><input id="m_cpl1" type="number" value="140"></div>
+      <div class="inp-group"><label>CpL₂ (kJ/kmol·K)</label><input id="m_cpl2" type="number" value="160"></div>
+      <div class="inp-group"><label>CpV₁ (kJ/kmol·K)</label><input id="m_cpv1" type="number" value="90"></div>
+      <div class="inp-group"><label>CpV₂ (kJ/kmol·K)</label><input id="m_cpv2" type="number" value="110"></div>
+    </div>
+    <div class="inputs-row">
+      <div class="inp-group"><label>¿Azeótropo?</label><select id="m_azeo" onchange="toggleAzeoInput()"><option value="no">No</option><option value="si">Sí</option></select></div>
+      <div class="inp-group" id="grpAzX" style="display:none"><label>x azeótropo</label><input id="m_xazeo" type="number" step="0.001" value="0.5"></div>
+    </div>
+    <div class="step-label" style="margin-top:12px;">Tabla VLE</div>
+    <div class="tbl-manual"><table id="tablaVLE"><thead><tr><th>#</th><th>T(°C)</th><th>x₁</th><th>y₁</th><th></th></tr></thead><tbody id="tbodyVLE"></tbody></table>
+    <button class="btn-sm btn-add" onclick="agregarFilaVLE()" style="margin-top:6px;">+ Fila</button></div>
+    <button class="btn-sm" style="background:#1a3a4a;color:#7eb8f7;padding:7px 14px;margin-top:10px;" onclick="guardarSistemaManual()">💾 Guardar</button>
+    <span id="msgGuardado" style="font-size:11px;color:#4caf50;margin-left:8px;display:none;">✓ Guardado</span>
+  </div>
+</div>
+
+<!-- PASO 2 -->
+<div class="card">
+  <div class="card-title">Paso 2 — Condiciones de operación</div>
+  <div class="step-label">Composiciones y flujos</div>
+  <div class="inputs-row">
+    <div class="inp-group"><label>xF</label><input id="xF" type="number" step="0.01" value="0.40"></div>
+    <div class="inp-group"><label>xD</label><input id="xD" type="number" step="0.01" value="0.90"></div>
+    <div class="inp-group"><label>xB</label><input id="xB" type="number" step="0.01" value="0.05"></div>
+    <div class="inp-group"><label>F (kmol/h)</label><input id="F" type="number" step="1" value="100"></div>
+  </div>
+  <div class="step-label">Condición del feed</div>
+  <div class="inputs-row">
+    <div class="inp-group"><label>Tipo de alimentación</label>
+      <select id="feedTipo" onchange="toggleFeedPanel()">
+        <option value="sat_liq">Líquido saturado (q=1)</option>
+        <option value="sat_vap">Vapor saturado (q=0)</option>
+        <option value="mixed">Mezcla L/V (0&lt;q&lt;1)</option>
+        <option value="subcooled">Líq. subenfriado (q&gt;1)</option>
+        <option value="superheated">Vap. sobrecalentado (q&lt;0)</option>
+        <option value="hf">H_F directo</option>
+      </select>
+    </div>
+  </div>
+  <div id="pQ" style="display:none" class="inputs-row"><div class="inp-group"><label>q</label><input id="qVal" type="number" step="0.01" value="0.5"></div></div>
+  <div id="pSub" style="display:none" class="inputs-row">
+    <div class="inp-group"><label>TF (°C)</label><input id="TF_s" type="number" value="20"></div>
+    <div class="inp-group"><label>CpL feed (kJ/kmol·K)</label><input id="CpF_s" type="number" value="150"></div>
+  </div>
+  <div id="pSup" style="display:none">
+    <div class="alert alert-warn" style="font-size:12px;margin-bottom:8px;">q = −CpV·(Tsc−Tb)/λ &nbsp;|&nbsp; Q_ext = F·[CpL·(Tb−TL)+λ+CpV·(Tsc−Tb)]</div>
+    <div class="inputs-row">
+      <div class="inp-group"><label>TL (°C)</label><input id="TL_s" type="number" value="25"></div>
+      <div class="inp-group"><label>Tb burbuja (°C)</label><input id="Tb_s" type="number" value="80"></div>
+      <div class="inp-group"><label>Tsc (°C)</label><input id="Tsc_s" type="number" value="104"></div>
+      <div class="inp-group"><label>CpV (kJ/kmol·K)</label><input id="CpV_s" type="number" value="90"></div>
+      <div class="inp-group"><label>λ (kJ/kmol)</label><input id="lam_s" type="number" value="30000"></div>
+    </div>
+  </div>
+  <div id="pHF" style="display:none" class="inputs-row"><div class="inp-group"><label>H_F (kJ/kmol)</label><input id="HF_v" type="number" value="15000"></div></div>
+
+  <div class="step-label">Reflujo y eficiencia</div>
+  <div class="inputs-row">
+    <div class="inp-group"><label>R (reflujo real)</label><input id="R" type="number" step="0.1" value="3.0"></div>
+    <div class="inp-group"><label>E (eficiencia global)</label><input id="E" type="number" step="0.01" value="1.0"></div>
+    <div class="inp-group"><label>E<sub>MV</sub> Murphree (0&#x2013;1)</label><input id="EMV" type="number" step="0.01" min="0.01" max="1" value="1.0"></div>
+  </div>
+  <div style="font-size:11px;color:#556677;margin-top:4px;padding:6px 10px;background:#162030;border-left:3px solid #4a9eff;border-radius:4px;">
+    <b>E<sub>MV</sub> = 1</b> &rarr; escalona sobre equilibrio real &nbsp;|&nbsp;
+    <b>E<sub>MV</sub> &lt; 1</b> &rarr; escalona sobre pseudo-curva de Murphree en diagrama x-y.
+    El plato de alimentaci&oacute;n real se determina sobre la pseudo-curva.
+  </div>
+  <div style="margin-top:8px;">
+    <label style="font-size:12px;color:#7888a0;cursor:pointer;">
+      <input type="checkbox" id="chkQC" onchange="toggleQCPanel()" style="margin-right:6px;">Ingresar QC manualmente (avanzado)
+    </label>
+  </div>
+  <div class="qc-override" id="pQC">
+    <div class="inputs-row">
+      <div class="inp-group"><label>QC (kJ/h)</label><input id="QC_v" type="number" value="1000000"></div>
+      <div style="font-size:11px;color:#7888a0;align-self:flex-end;padding-bottom:8px;">R implícito se muestra en resultados</div>
+    </div>
+  </div>
+</div>
+
+<!-- PASO 3 -->
+<div class="card" style="text-align:center;padding:16px;">
+  <div style="margin-bottom:14px;">
+    <label style="font-size:13px;color:#e0e6f0;font-weight:bold;">
+      Condensador:&nbsp;
+      <select id="condParcial" style="width:150px;font-size:13px;">
+        <option value="no">Total (no es etapa)</option>
+        <option value="si">Parcial (sí es etapa)</option>
+      </select>
+    </label>
+    <span style="font-size:11px;color:#556677;margin-left:12px;">
+      Total = solo condensa, no hay equilibrio L-V &nbsp;|&nbsp; Parcial = hay equilibrio, cuenta como etapa teórica
+    </span>
+  </div>
+  <button class="calc-btn" onclick="calcular()">&#9654; Calcular Pónchon-Savarit</button>
+</div>
+
+<!-- RESULTADOS -->
+<div id="secResultados" style="display:none;">
+
+  <!-- Diagrama de columna -->
+  <div class="chart-container">
+    <div class="chart-title">Diagrama de la Columna de Destilación</div>
+    <div class="diagrama-wrap"><canvas id="cvColumna" width="960" height="720"></canvas></div>
+  </div>
+
+  <!-- Síntesis de datos del problema -->
+  <div class="chart-container" style="padding:16px 20px;">
+    <div class="chart-title">&#128203; Síntesis de datos del problema</div>
+    <div id="resSintesis" style="font-size:12px;line-height:1.8;"></div>
+  </div>
+
+  <!-- Resumen numérico -->
+  <div class="results-grid">
+    <div class="res-card"><div class="res-title">&#9878;&#65039; BALANCES</div><div id="resBalances"></div></div>
+    <div class="res-card"><div class="res-title">&#128208; POLOS &#916;</div><div id="resPolos"></div></div>
+    <div class="res-card"><div class="res-title">&#129695; ETAPAS</div><div id="resEtapas"></div></div>
+    <div class="res-card"><div class="res-title">&#127777;&#65039; CALORES</div><div id="resCalores"></div></div>
+  </div>
+  </div>
+
+  <!-- Diagrama H-xy principal -->
+  <div class="chart-container">
+    <div class="chart-title">Diagrama H-xy — Pónchon-Savarit</div>
+    <canvas id="cvHxy" width="1100" height="700"></canvas>
+  </div>
+
+  <!-- Comparación McCabe-Thiele -->
+  <div class="chart-container">
+    <div class="chart-title">Diagrama x-y — McCabe-Thiele (mismo R y q)</div>
+    <canvas id="cvXY" width="1100" height="600"></canvas>
+  </div>
+
+  <!-- Botón guardar escenario -->
+  <div style="text-align:center;padding:20px 0 10px;">
+    <button class="calc-btn" onclick="guardarEscenario()"
+      style="background:#1a3a4a;border-color:#4a9eff;font-size:13px;padding:10px 24px;">
+      💾 Guardar escenario como archivo HTML
+    </button>
+    <div style="font-size:11px;color:#556677;margin-top:6px;">
+      Genera un archivo .html independiente que al abrirse muestra este resultado directamente
+    </div>
+  </div>
+
+</div>
+</div><!-- /app -->
+
+<script>
+Chart.register(ChartDataLabels);
+let charts={};
+let sistemaActual='hexhep';
+
+// ══════════════════════════
+// SISTEMAS
+// ══════════════════════════
+const SISTEMAS={
+  hexhep:{nombre:'Hexano/Heptano',comp1:'Hexano',comp2:'Heptano',tipo:'ideal',azeotropo:false,
+    tb1:68.66,tb2:98.32,dhvap1:28850,dhvap2:31560,cpl1:167,cpl2:198,cpv1:97,cpv2:120,
+    vle:[{T:98.32,x:0,y:0},{T:96.30,x:0.038,y:0.085},{T:94.03,x:0.096,y:0.199},
+      {T:92.35,x:0.136,y:0.273},{T:90.37,x:0.190,y:0.360},{T:88.26,x:0.246,y:0.441},
+      {T:85.96,x:0.315,y:0.526},{T:83.22,x:0.395,y:0.624},{T:82.41,x:0.432,y:0.653},
+      {T:80.80,x:0.485,y:0.703},{T:79.78,x:0.512,y:0.727},{T:78.79,x:0.557,y:0.762},
+      {T:77.12,x:0.619,y:0.807},{T:75.57,x:0.682,y:0.850},{T:74.98,x:0.701,y:0.861},
+      {T:73.51,x:0.768,y:0.899},{T:71.40,x:0.816,y:0.924},{T:70.59,x:0.899,y:0.964},{T:68.66,x:1,y:1}]},
+  hepoct:{nombre:'Heptano/Octano',comp1:'Heptano',comp2:'Octano',tipo:'ideal',azeotropo:false,
+    tb1:95.0,tb2:125.6,dhvap1:31560,dhvap2:34700,cpl1:198,cpl2:222,cpv1:120,cpv2:140,
+    vle:[{T:125.6,x:0,y:0},{T:123.0,x:0.05,y:0.10},{T:121.0,x:0.10,y:0.18},
+      {T:119.0,x:0.15,y:0.26},{T:117.5,x:0.20,y:0.33},{T:116.0,x:0.25,y:0.40},
+      {T:114.5,x:0.30,y:0.47},{T:113.0,x:0.35,y:0.53},{T:111.5,x:0.40,y:0.59},
+      {T:110.0,x:0.45,y:0.65},{T:108.5,x:0.50,y:0.70},{T:107.0,x:0.55,y:0.75},
+      {T:105.5,x:0.60,y:0.79},{T:104.0,x:0.65,y:0.83},{T:102.5,x:0.70,y:0.87},
+      {T:101.0,x:0.75,y:0.90},{T:99.5,x:0.80,y:0.93},{T:98.0,x:0.85,y:0.96},
+      {T:96.5,x:0.90,y:0.98},{T:95.0,x:1,y:1}]},
+  bentol:{nombre:'Benceno/Tolueno',comp1:'Benceno',comp2:'Tolueno',tipo:'ideal',azeotropo:false,
+    tb1:80.1,tb2:110.6,dhvap1:30720,dhvap2:33180,cpl1:136,cpl2:157,cpv1:82,cpv2:104,
+    vle:[{T:110.6,x:0,y:0},{T:108.3,x:0.05,y:0.102},{T:106.1,x:0.10,y:0.196},
+      {T:104.0,x:0.15,y:0.284},{T:101.9,x:0.20,y:0.368},{T:99.9,x:0.25,y:0.445},
+      {T:97.9,x:0.30,y:0.518},{T:96.0,x:0.35,y:0.586},{T:94.1,x:0.40,y:0.650},
+      {T:92.4,x:0.45,y:0.711},{T:90.6,x:0.50,y:0.768},{T:88.9,x:0.55,y:0.821},
+      {T:87.3,x:0.60,y:0.870},{T:85.7,x:0.65,y:0.915},{T:84.2,x:0.70,y:0.942},
+      {T:82.7,x:0.75,y:0.957},{T:81.2,x:0.80,y:0.968},{T:80.7,x:0.85,y:0.977},
+      {T:80.3,x:0.90,y:0.987},{T:80.1,x:1,y:1}]},
+  etaagua:{nombre:'Etanol/Agua',comp1:'Etanol',comp2:'Agua',tipo:'azeotropo',azeotropo:true,xAzeo:0.894,TAzeo:78.15,
+    tb1:78.37,tb2:100.0,dhvap1:38560,dhvap2:40650,cpl1:112,cpl2:75.3,cpv1:65,cpv2:34,
+    vle:[{T:100.0,x:0,y:0},{T:100.0,x:0.019,y:0.170},{T:95.5,x:0.072,y:0.389},
+      {T:89.0,x:0.097,y:0.438},{T:86.7,x:0.124,y:0.470},{T:85.3,x:0.166,y:0.509},
+      {T:84.1,x:0.238,y:0.545},{T:82.7,x:0.261,y:0.558},{T:82.3,x:0.327,y:0.583},
+      {T:81.5,x:0.397,y:0.612},{T:80.7,x:0.508,y:0.656},{T:79.8,x:0.520,y:0.660},
+      {T:79.7,x:0.573,y:0.684},{T:79.3,x:0.676,y:0.739},{T:78.74,x:0.747,y:0.782},
+      {T:78.41,x:0.894,y:0.894},{T:78.15,x:1,y:1}]},
+  metagua:{nombre:'Metanol/Agua',comp1:'Metanol',comp2:'Agua',tipo:'noIdeal',azeotropo:false,
+    tb1:64.7,tb2:100.0,dhvap1:35300,dhvap2:40650,cpl1:81,cpl2:75.3,cpv1:44,cpv2:34,
+    vle:[{T:100.0,x:0,y:0},{T:96.4,x:0.05,y:0.21},{T:93.5,x:0.10,y:0.37},
+      {T:90.8,x:0.15,y:0.49},{T:88.2,x:0.20,y:0.58},{T:86.0,x:0.25,y:0.65},
+      {T:83.8,x:0.30,y:0.71},{T:81.8,x:0.35,y:0.76},{T:80.0,x:0.40,y:0.80},
+      {T:78.4,x:0.45,y:0.83},{T:76.9,x:0.50,y:0.86},{T:75.5,x:0.55,y:0.88},
+      {T:74.2,x:0.60,y:0.90},{T:72.9,x:0.65,y:0.92},{T:71.7,x:0.70,y:0.94},
+      {T:70.6,x:0.75,y:0.955},{T:69.6,x:0.80,y:0.97},{T:68.6,x:0.85,y:0.98},
+      {T:67.6,x:0.90,y:0.99},{T:66.5,x:0.95,y:0.995},{T:64.7,x:1,y:1}]},
+
+  tolxil:{nombre:'Tolueno/Xileno',comp1:'Tolueno',comp2:'Xileno',tipo:'ideal',azeotropo:false,
+    tb1:110.6,tb2:138.4,dhvap1:33900,dhvap2:36000,cpl1:156,cpl2:187,cpv1:104,cpv2:126,
+    vle:[
+      {T:138.4,x:0.00,y:0.00},{T:136.0,x:0.10,y:0.18},{T:133.7,x:0.20,y:0.32},
+      {T:131.5,x:0.30,y:0.45},{T:129.3,x:0.40,y:0.57},{T:127.2,x:0.50,y:0.67},
+      {T:125.1,x:0.60,y:0.76},{T:123.1,x:0.70,y:0.84},{T:121.1,x:0.80,y:0.91},
+      {T:119.2,x:0.90,y:0.96},{T:110.6,x:1.00,y:1.00}]},
+
+  clorben:{nombre:'Cloroformo/Benceno',comp1:'Cloroformo',comp2:'Benceno',tipo:'noIdeal',azeotropo:false,
+    tb1:61.4,tb2:80.6,dhvap1:29600,dhvap2:30800,cpl1:96,cpl2:136,cpv1:67,cpv2:82,
+    vle:[
+      {T:80.6,x:0.00,y:0.00},{T:79.8,x:0.08,y:0.10},{T:79.0,x:0.15,y:0.22},
+      {T:77.3,x:0.29,y:0.40},{T:75.3,x:0.44,y:0.60},{T:71.9,x:0.66,y:0.80},
+      {T:68.9,x:0.79,y:0.90},{T:61.4,x:1.00,y:1.00}]},
+
+  hepnon:{nombre:'Heptano/Nonano',comp1:'Heptano',comp2:'Nonano',tipo:'ideal',azeotropo:false,
+    tb1:98.4,tb2:150.8,dhvap1:31600,dhvap2:37500,cpl1:198,cpl2:255,cpv1:120,cpv2:160,
+    vle:[
+      {T:150.8,x:0.00,y:0.00},{T:146.5,x:0.10,y:0.21},{T:142.4,x:0.20,y:0.38},
+      {T:138.6,x:0.30,y:0.52},{T:135.0,x:0.40,y:0.63},{T:131.6,x:0.50,y:0.73},
+      {T:128.3,x:0.60,y:0.81},{T:125.2,x:0.70,y:0.88},{T:122.2,x:0.80,y:0.94},
+      {T:119.3,x:0.90,y:0.98},{T:98.4, x:1.00,y:1.00}]}
+};
+
+function cargarGuardados(){ try{ Object.assign(SISTEMAS,JSON.parse(localStorage.getItem('ps_sis')||'{}')); }catch(e){} }
+cargarGuardados();
+
+// ── VLE manual ──
+let filasVLE=[{T:110,x:0,y:0},{T:95,x:0.5,y:0.7},{T:80,x:1,y:1}];
+function renderTablaVLE(){
+  const tb=document.getElementById('tbodyVLE'); tb.innerHTML='';
+  filasVLE.forEach((f,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td>
+      <td><input type="number" step="0.1" value="${f.T.toFixed(1)}" onchange="filasVLE[${i}].T=+this.value" style="width:75px;padding:4px;background:#0f1923;border:1px solid #2a3f55;border-radius:4px;color:#e0e6f0;font-size:12px;"></td>
+      <td><input type="number" step="0.001" min="0" max="1" value="${f.x.toFixed(4)}" onchange="filasVLE[${i}].x=+this.value" style="width:75px;padding:4px;background:#0f1923;border:1px solid #2a3f55;border-radius:4px;color:#e0e6f0;font-size:12px;"></td>
+      <td><input type="number" step="0.001" min="0" max="1" value="${f.y.toFixed(4)}" onchange="filasVLE[${i}].y=+this.value" style="width:75px;padding:4px;background:#0f1923;border:1px solid #2a3f55;border-radius:4px;color:#e0e6f0;font-size:12px;"></td>
+      <td><button class="btn-sm btn-del" onclick="eliminarFilaVLE(${i})">✕</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+function agregarFilaVLE(){ filasVLE.push({T:90,x:0.5,y:0.7}); renderTablaVLE(); }
+function eliminarFilaVLE(i){ if(filasVLE.length>2){ filasVLE.splice(i,1); renderTablaVLE(); } }
+function toggleAzeoInput(){ const v=document.getElementById('m_azeo').value==='si'; document.getElementById('grpAzX').style.display=v?'':'none'; }
+function guardarSistemaManual(){
+  const s=getSistemaManual(); if(!s) return;
+  const k='u_'+s.nombre.replace(/\W/g,'_');
+  try{ const saved=JSON.parse(localStorage.getItem('ps_sis')||'{}'); saved[k]=s; localStorage.setItem('ps_sis',JSON.stringify(saved)); SISTEMAS[k]=s; }catch(e){}
+  document.getElementById('msgGuardado').style.display='inline';
+  setTimeout(()=>document.getElementById('msgGuardado').style.display='none',2500);
+}
+function getSistemaManual(){
+  const vle=filasVLE.map(f=>({T:f.T,x:f.x,y:f.y})).sort((a,b)=>b.T-a.T);
+  if(vle.length<3){ alert('Mínimo 3 puntos VLE'); return null; }
+  const azeo=document.getElementById('m_azeo').value==='si';
+  return { nombre:document.getElementById('m_n1').value+'/'+document.getElementById('m_n2').value,
+    comp1:document.getElementById('m_n1').value, comp2:document.getElementById('m_n2').value,
+    tipo:azeo?'azeotropo':'ideal', azeotropo:azeo,
+    xAzeo:azeo?+document.getElementById('m_xazeo').value:null,
+    tb1:+document.getElementById('m_tb1').value, tb2:+document.getElementById('m_tb2').value,
+    dhvap1:+document.getElementById('m_dh1').value, dhvap2:+document.getElementById('m_dh2').value,
+    cpl1:+document.getElementById('m_cpl1').value, cpl2:+document.getElementById('m_cpl2').value,
+    cpv1:+document.getElementById('m_cpv1').value, cpv2:+document.getElementById('m_cpv2').value, vle };
+}
+
+// ── UI ──
+function setSistema(s){
+  sistemaActual=s;
+  ['btnHexHep','btnHepOct','btnBenTol','btnEtaAgua','btnMetAgua','btnManual','btnTolXil','btnClorBen','btnHepNon'].forEach(id=>document.getElementById(id)&&document.getElementById(id).classList.remove('activo'));
+  const m={hexhep:'btnHexHep',hepoct:'btnHepOct',bentol:'btnBenTol',etaagua:'btnEtaAgua',metagua:'btnMetAgua',manual:'btnManual',tolxil:'btnTolXil',clorben:'btnClorBen',hepnon:'btnHepNon'};
+  document.getElementById(m[s]).classList.add('activo');
+  document.getElementById('panelManual').style.display=s==='manual'?'block':'none';
+  const el=document.getElementById('infoSistema');
+  if(s==='manual'){ el.className='alert alert-warn'; el.innerHTML='<b>✏️ Modo manual</b> — ingresá tus datos.'; renderTablaVLE(); return; }
+  const sys=SISTEMAS[s];
+  if(!sys) return;
+  let cls='alert-info',extra='';
+  if(sys.azeotropo){ cls='alert-azeot'; extra=` | ⚠️ <b>Azeótropo x=${sys.xAzeo}</b> — xD debe ser < ${sys.xAzeo}`; }
+  el.className='alert '+cls;
+  el.innerHTML=`<b>${sys.nombre}</b> | Tb₁=${sys.tb1}°C | Tb₂=${sys.tb2}°C | ΔHvap₁=${sys.dhvap1.toLocaleString()} | ΔHvap₂=${sys.dhvap2.toLocaleString()} kJ/kmol${extra}`;
+}
+function toggleFeedPanel(){
+  const v=document.getElementById('feedTipo').value;
+  ['pQ','pSub','pSup','pHF'].forEach(id=>document.getElementById(id).style.display='none');
+  if(v==='mixed') document.getElementById('pQ').style.display='flex';
+  if(v==='subcooled') document.getElementById('pSub').style.display='flex';
+  if(v==='superheated') document.getElementById('pSup').style.display='block';
+  if(v==='hf') document.getElementById('pHF').style.display='flex';
+}
+function toggleQCPanel(){ document.getElementById('pQC').classList.toggle('visible',document.getElementById('chkQC').checked); }
+
+// ══════════════════════════
+// MATEMÁTICAS
+// ══════════════════════════
+function interp(arr,kx,ky,val){
+  const s=[...arr].sort((a,b)=>a[kx]-b[kx]);
+  if(val<=s[0][kx]) return s[0][ky];
+  if(val>=s[s.length-1][kx]) return s[s.length-1][ky];
+  for(let i=0;i<s.length-1;i++){
+    if(val>=s[i][kx]&&val<=s[i+1][kx]){
+      const t=(val-s[i][kx])/(s[i+1][kx]-s[i][kx]);
+      return s[i][ky]+t*(s[i+1][ky]-s[i][ky]);
+    }
+  }
+  return s[s.length-1][ky];
+}
+
+function calcEntalpias(sys){
+  const Tref=sys.tb2;
+  return sys.vle.map(pt=>{
+    const {T,x,y}=pt;
+    const HL=x*sys.cpl1*(T-Tref)+(1-x)*sys.cpl2*(T-Tref);
+    const HV=y*(sys.cpl1*(T-Tref)+sys.dhvap1)+(1-y)*(sys.cpl2*(T-Tref)+sys.dhvap2);
+    return {T,x,y,HL,HV};
+  });
+}
+
+// Intersección línea (poleX,poleH)-(p0x,p0H) con curva (kx,ky)
+function intersect(puntos,kx,ky,poleX,poleH,p0x,p0H,cond){
+  if(Math.abs(p0x-poleX)<1e-9) return null;
+  const m=(p0H-poleH)/(p0x-poleX);
+  const s=[...puntos].sort((a,b)=>a[kx]-b[kx]);
+  let best=null,bDist=Infinity;
+  for(let i=0;i<s.length-1;i++){
+    const p1=s[i],p2=s[i+1];
+    const dk=p2[kx]-p1[kx],dv=p2[ky]-p1[ky];
+    const den=dv-m*dk; if(Math.abs(den)<1e-8) continue;
+    const t=(poleH+m*(p1[kx]-poleX)-p1[ky])/den;
+    if(t<-1e-6||t>1+1e-6) continue;
+    const xi=p1[kx]+t*dk;
+    if(!cond(xi,p0x)) continue;
+    const d=Math.abs(xi-p0x); if(d<bDist){bDist=d;best=xi;}
+  }
+  return best;
+}
+
+function calcFeedParams(sys,puntos){
+  const tipo=document.getElementById('feedTipo').value;
+  const xF=+document.getElementById('xF').value;
+  const Tref=sys.tb2;
+  const HLF=interp(puntos,'x','HL',xF), HVF=interp(puntos,'y','HV',xF);
+  let q,HF;
+  if(tipo==='sat_liq'){ q=1; HF=HLF; }
+  else if(tipo==='sat_vap'){ q=0; HF=HVF; }
+  else if(tipo==='mixed'){ q=+document.getElementById('qVal').value; HF=q*HLF+(1-q)*HVF; }
+  else if(tipo==='subcooled'){
+    const TF=+document.getElementById('TF_s').value, CpF=+document.getElementById('CpF_s').value;
+    const TbF=interp(sys.vle,'x','T',xF);
+    q=1+CpF*(TbF-TF)/(sys.dhvap1*xF+sys.dhvap2*(1-xF));
+    HF=xF*sys.cpl1*(TF-Tref)+(1-xF)*sys.cpl2*(TF-Tref);
+  }
+  else if(tipo==='superheated'){
+    const TL=+document.getElementById('TL_s').value,Tb=+document.getElementById('Tb_s').value;
+    const Tsc=+document.getElementById('Tsc_s').value,CpV=+document.getElementById('CpV_s').value,lam=+document.getElementById('lam_s').value;
+    q=-CpV*(Tsc-Tb)/lam;
+    HF=xF*sys.cpl1*(Tsc-Tref)+(1-xF)*sys.cpl2*(Tsc-Tref)+xF*sys.dhvap1+(1-xF)*sys.dhvap2;
+  }
+  else{ HF=+document.getElementById('HF_v').value; q=(HVF-HF)/(HVF-HLF); }
+  return {q,HF,HLF,HVF};
+}
+
+// Pinch en x-y: intersección línea q con curva de equilibrio
+function calcPinchXY(puntos,xF,q){
+  const s=[...puntos].sort((a,b)=>a.x-b.x);
+  if(Math.abs(q-1)<0.001) return {xP:xF,yP:interp(puntos,'x','y',xF)};
+  const mq=q/(q-1),bq=-xF/(q-1);
+  for(let i=0;i<s.length-1;i++){
+    const p1=s[i],p2=s[i+1];
+    const dx=p2.x-p1.x,dy=p2.y-p1.y;
+    const den=dy-mq*dx; if(Math.abs(den)<1e-10) continue;
+    const t=(mq*p1.x+bq-p1.y)/den;
+    if(t<-1e-6||t>1+1e-6) continue;
+    return {xP:p1.x+t*dx,yP:p1.y+t*dy};
+  }
+  return {xP:xF,yP:interp(puntos,'x','y',xF)};
+}
+
+// Rmin entálpico: por los pares VLE
+function calcRmin(puntos,xD,xF,q,HVD,HLD){
+  const {xP,yP}=calcPinchXY(puntos,xF,q);
+  const HVp=interp(puntos,'y','HV',yP), HLp=interp(puntos,'x','HL',xP);
+  // Recta de op mínima pasa por (xP,HLp)-(yP,HVp) y por (xD,H_polo)
+  const m=(HVp-HLp)/(yP-xP);
+  const H_polo=HLp+m*(xD-xP);
+  const Rmin=(H_polo-HVD)/(HVD-HLD);
+  return {Rmin:Math.max(Rmin,0.01),H_polo,xP,yP,HVp,HLp};
+}
+
+// Escalado normal
+function calcEtapas(puntos,xD,xB,pRx,pRH,pSx,pSH,xF,q,EMV){
+  const steps=[],stepLines=[],stepsXY=[];
+  const emv = (EMV===undefined||EMV===null) ? 1.0 : EMV;
+  const useMV = emv < 0.9999;
+
+  // Punto de arranque: vertical xD corta HV
+  const HVD_start = interp(puntos,'y','HV',xD);
+  const x0   = interp(puntos,'y','x',  xD);
+  const HL0  = interp(puntos,'x','HL', x0);
+
+  // Primer paso de equilibrio (condensador): (xD, HVD) → (x0, HL0)
+  // Con Murphree el condensador total no tiene equilibrio parcial → no se modifica
+  steps.push({x1:xD, H1:HVD_start, x2:x0, H2:HL0, tipo:'eq'});
+  stepsXY.push({xFrom:xD, xTo:x0, y:xD});
+
+  let curX=x0, curHL=HL0;
+  let N=0, nRect=0, nStrip=0, feedPlate=null, useRect=true;
+
+  for(let it=0;it<80;it++){
+    if(curX<=xB+0.002) break;
+
+    // Calcular yNext para ambos polos (intersección línea op con HV)
+    const yR = intersect(puntos,'y','HV', pRx,pRH, curX,curHL, (yi,cx)=>yi>cx+0.0005);
+    const yS = intersect(puntos,'y','HV', pSx,pSH, curX,curHL, (yi,cx)=>yi>cx+0.0005);
+
+    let yNext, usedRect;
+
+    if(useRect){
+      if(yR===null){
+        if(yS===null) break;
+        yNext=yS; usedRect=false;
+        if(feedPlate===null) feedPlate=N+1;
+        useRect=false;
+      } else if(yS!==null && yS<yR){
+        yNext=yS; usedRect=false;
+        if(feedPlate===null) feedPlate=N+1;
+        useRect=false;
+      } else {
+        yNext=yR; usedRect=true;
+      }
+    } else {
+      if(yS===null) break;
+      yNext=yS; usedRect=false;
+    }
+
+    const pX = usedRect ? pRx : pSx;
+    const pH = usedRect ? pRH : pSH;
+    const HVnext = interp(puntos,'y','HV',yNext);
+    stepLines.push({pX,pH, x1:curX,H1:curHL, x2:yNext,H2:HVnext});
+    steps.push({x1:curX,H1:curHL, x2:yNext,H2:HVnext, tipo:usedRect?'rect':'strip'});
+
+    // ── Línea de equilibrio con Murphree ──────────────────────────
+    // Fórmula: y_sale = EMV*(y* - y_entrada) + y_entrada
+    //   y*        = yEq(curX) = equilibrio real del líquido que SALE del plato
+    //   y_entrada = yNext = composición del vapor que ENTRA al plato desde abajo
+    //               (= intersección de la línea de operación con HV en curX)
+    //   y_sale    = composición real del vapor que SALE del plato
+    //   xNext     = interp(y=y_sale → x) de la tabla VLE
+    let xNext, HLnext;
+    if(useMV){
+      const yStar  = interp(puntos,'x','y', curX);   // equilibrio real en curX
+      const y_sale = emv*(yStar - yNext) + yNext;    // Murphree
+      const yClamp = Math.max(0.001, Math.min(0.999, y_sale));
+      xNext  = interp(puntos,'y','x',  yClamp);
+      HLnext = interp(puntos,'x','HL', xNext);
+      steps.push({x1:yNext,H1:HVnext, x2:xNext,H2:HLnext, tipo:'eq'});
+      stepsXY.push({xFrom:curX, xTo:xNext, y:y_sale});
+    } else {
+      xNext  = interp(puntos,'y','x',  yNext);
+      HLnext = interp(puntos,'x','HL', xNext);
+      steps.push({x1:yNext,H1:HVnext, x2:xNext,H2:HLnext, tipo:'eq'});
+      stepsXY.push({xFrom:curX, xTo:xNext, y:yNext});
+    }
+
+    N++; usedRect?nRect++:nStrip++;
+    curX=xNext; curHL=HLnext;
+    if(curX<=xB+0.002) break;
+  }
+  return {n:N,nRect,nStrip,feedPlate,steps,stepLines,stepsXY};
+}
+
+// ══════════════════════════
+// CALCULAR PRINCIPAL
+// ══════════════════════════
+function calcular(){
+  const sys=sistemaActual==='manual'?getSistemaManual():SISTEMAS[sistemaActual];
+  if(!sys) return;
+  const xF=+document.getElementById('xF').value;
+  const xD=+document.getElementById('xD').value;
+  const xB=+document.getElementById('xB').value;
+  const F =+document.getElementById('F').value;
+  const R =+document.getElementById('R').value;
+  const E =+document.getElementById('E').value;
+
+  if(sys.azeotropo&&xD>sys.xAzeo+0.005){ alert('xD supera el azeótropo ('+sys.xAzeo+'). No es posible la separación.'); return; }
+  if(xD<=xF||xF<=xB){ alert('Se requiere xB < xF < xD'); return; }
+
+  const puntos=calcEntalpias(sys);
+  const {q,HF}=calcFeedParams(sys,puntos);
+  const D=F*(xF-xB)/(xD-xB), W=F-D;
+  const L=R*D, V=L+D, L2=L+q*F, V2=V-(1-q)*F;
+
+  const HLD=interp(puntos,'x','HL',xD), HVD=interp(puntos,'y','HV',xD);
+  const HLB=interp(puntos,'x','HL',xB), HVB=interp(puntos,'y','HV',xB);
+
+  // QC correcto: balance del condensador total
+  // V*HVD = (L+D)*HLD + QC  →  QC = V*(HVD-HLD)
+  const QC_auto = V*(HVD-HLD);
+  const QC_D_auto = QC_auto/D;  // por kmol de destilado (para polo Δ_R)
+  let QC=QC_auto, QC_D=QC_D_auto;
+  if(document.getElementById('chkQC').checked){
+    QC = +document.getElementById('QC_v').value;
+    QC_D = QC/D;
+  }
+
+  // Polos
+  const pRx=xD, pRH=HVD+QC_D;
+  const QR=D*pRH+W*HLB-F*HF;
+  const pSx=xB, pSH=HLB-QR/W;
+
+  // Rmin y pinch
+  const rminRes=calcRmin(puntos,xD,xF,q,HVD,HLD);
+  const {Rmin,H_polo:H_polo_rmin,xP:xPinch,yP:yPinch}=rminRes;
+  const {xP:xPinchXY,yP:yPinchXY}=calcPinchXY(puntos,xF,q);
+
+  // Polo Rmin
+  const pRx_min=xD, pRH_min=H_polo_rmin;
+  const QR_min=D*pRH_min+W*HLB-F*HF;
+  const pSx_min=xB, pSH_min=HLB-QR_min/W;
+
+  // Etapas
+  const EMV_val = +document.getElementById('EMV').value;
+  const useMurphree = EMV_val < 0.9999;
+  const etNorm=calcEtapas(puntos,xD,xB,pRx,pRH,pSx,pSH,xF,q,1.0);
+  const Nreal=Math.ceil(etNorm.n/E);
+
+  // Mostrar
+  document.getElementById('secResultados').style.display='block';
+  document.getElementById('secResultados').scrollIntoView({behavior:'smooth',block:'start'});
+
+  // ── McCabe-Thiele con mismo R y q (para comparativa) ──
+  const mR_mc = R/(R+1), bR_mc = xD/(R+1);
+  let xOp_mc, yOp_mc;
+  if(Math.abs(q-1)<0.001){ xOp_mc=xF; yOp_mc=mR_mc*xF+bR_mc; }
+  else{ const mq=q/(q-1),bq=-xF/(q-1); xOp_mc=(bq-bR_mc)/(mR_mc-mq); yOp_mc=mR_mc*xOp_mc+bR_mc; }
+  const mS_mc=(yOp_mc-xB)/(xOp_mc-xB), bS_mc=xB-mS_mc*xB;
+  // Loop TEÓRICO (curva equilibrio real, EMV=1 siempre)
+  let xc=xD, yc=xD, N_mc=0, fp_mc=null;
+  for(let i=0;i<150;i++){
+    const xe = interp(puntos,'y','x',yc);
+    yc = xe>=xOp_mc ? mR_mc*xe+bR_mc : mS_mc*xe+bS_mc;
+    if(xe>=xOp_mc) {} else if(fp_mc===null) fp_mc=N_mc+1;
+    xc=xe; N_mc++;
+    if(xc<=xB+0.001) break;
+  }
+  const Nreal_mc = Math.ceil(N_mc/E);
+  // Loop REAL (pseudo-curva Murphree, solo cuando EMV<1)
+  function xEnPseudo(yTarget){
+    if(!useMurphree) return interp(puntos,'y','x',yTarget);
+    let lo=0,hi=1;
+    for(let k=0;k<60;k++){
+      const xm=(lo+hi)/2;
+      const yS=interp(puntos,'x','y',xm);
+      const yOp=xm>=xOp_mc?mR_mc*xm+bR_mc:mS_mc*xm+bS_mc;
+      if(yOp+EMV_val*(yS-yOp)<yTarget) lo=xm; else hi=xm;
+    }
+    return (lo+hi)/2;
+  }
+  let xc2=xD,yc2=xD,N_mc_real=0,fp_mc_real=null;
+  if(useMurphree){
+    for(let i=0;i<150;i++){
+      const xe2=xEnPseudo(yc2);
+      yc2=xe2>=xOp_mc?mR_mc*xe2+bR_mc:mS_mc*xe2+bS_mc;
+      if(xe2>=xOp_mc){}else if(fp_mc_real===null)fp_mc_real=N_mc_real+1;
+      xc2=xe2; N_mc_real++;
+      if(xc2<=xB+0.001) break;
+    }
+  }
+
+  // Balances
+  document.getElementById('resBalances').innerHTML=`
+    <div class="res-row"><span class="lbl">D</span><span class="val">${D.toFixed(2)} kmol/h</span></div>
+    <div class="res-row"><span class="lbl">W</span><span class="val">${W.toFixed(2)} kmol/h</span></div>
+    <div class="res-row"><span class="lbl">L (rect.)</span><span class="val">${L.toFixed(2)} kmol/h</span></div>
+    <div class="res-row"><span class="lbl">V (rect.)</span><span class="val">${V.toFixed(2)} kmol/h</span></div>
+    <div class="res-row"><span class="lbl">L₂ (agot.)</span><span class="val">${L2.toFixed(2)} kmol/h</span></div>
+    <div class="res-row"><span class="lbl">V₂ (agot.)</span><span class="val">${V2.toFixed(2)} kmol/h</span></div>
+    <div class="res-row"><span class="lbl">q (feed)</span><span class="val">${q.toFixed(4)}</span></div>`;
+
+  document.getElementById('resPolos').innerHTML=`
+    <div class="res-row"><span class="lbl">Δ_R (x, H)</span><span class="val">(${pRx.toFixed(3)}, ${pRH.toFixed(0)})</span></div>
+    <div class="res-row"><span class="lbl">Δ_S (x, H)</span><span class="val">(${pSx.toFixed(3)}, ${pSH.toFixed(0)})</span></div>
+    <div class="res-row"><span class="lbl">R real</span><span class="val">${R.toFixed(3)}</span></div>
+    <div class="res-row"><span class="lbl">R<sub>min</sub></span><span class="val ${Rmin>0?'good':''}">${Rmin.toFixed(4)}</span></div>
+    <div class="res-row"><span class="lbl">R / R<sub>min</sub></span><span class="val ${R/Rmin>=1.1&&R/Rmin<=2?'good':'warn'}">${(R/Rmin).toFixed(3)}</span></div>
+    <div class="res-row"><span class="lbl">H_F</span><span class="val">${HF.toFixed(0)} kJ/kmol</span></div>
+    <div class="res-row"><span class="lbl">H_LD / H_VD</span><span class="val">${HLD.toFixed(0)} / ${HVD.toFixed(0)}</span></div>`;
+
+  // ── Conteo de etapas con lógica correcta ──────────────────────────
+  // calcEtapas(): el bucle cuenta platos + rehervidor = etNorm.n
+  // El segmento condensador se dibuja SIEMPRE en el grafico H-xy
+  // Condensador total : NO es etapa teorica
+  // Condensador parcial: SI es etapa teorica
+  const condParcial = document.getElementById('condParcial').value === 'si';
+
+  // ── Conteo definitivo ──────────────────────────────────────────
+  // etNorm.n = bucle (platos + rehervidor), el condensador se dibuja aparte
+  // Grafico siempre muestra etNorm.n + 1 segmentos numerados
+  // Condensador total  → se numera en grafico pero no es etapa termodinamica
+  //                       SIN EMBARGO el usuario ve 8 y esperamos reportar 8
+  // => N_teo = etNorm.n + 1 (siempre: lo que muestra el grafico)
+  // => Platos columna = N_teo - 1 (sin rehervidor)
+  // Condensador parcial suma 1 mas al total (pero el grafico ya lo muestra)
+  // => para cond parcial: N_teo = etNorm.n + 1 igual, solo cambia el desglose
+
+  // ── Pónchon: siempre teórico, E solo aplica al final como cociente ──
+  const N_teo_ps        = etNorm.n + 1;
+  const Nplatos_ps      = N_teo_ps - 1;
+  const Nplatos_real_ps = Math.ceil(Nplatos_ps / E);
+  const fp_ps_teo       = etNorm.feedPlate;
+  const fp_ps_real      = fp_ps_teo
+    ? Math.min(Nplatos_real_ps, Math.round(fp_ps_teo * Nplatos_real_ps / Nplatos_ps))
+    : null;
+
+  // ── McCabe: teórico (curva real) y real (pseudo-curva si EMV<1) ──
+  const N_teo_mc        = N_mc;
+  const Nplatos_mc      = N_teo_mc - 1;
+  const Nreal_mc_p      = Math.ceil(Nplatos_mc / E);
+  const N_real_mc       = useMurphree ? N_mc_real     : Math.ceil(N_mc/E);
+  const Nplatos_mc_real = N_real_mc - 1;
+  const fp_mc_teo       = fp_mc;
+  const fp_mc_realVal   = useMurphree ? fp_mc_real     : fp_mc;
+  const diffPlatos      = Math.abs(Nplatos_ps - Nplatos_mc);
+
+  document.getElementById('resEtapas').innerHTML=`
+    <div style="color:#4caf50;font-weight:bold;padding-bottom:4px;margin-bottom:6px;border-bottom:1px solid #2a3f55;">
+      Pónchon-Savarit &nbsp;<span style="font-weight:normal;font-size:11px;color:#7888a0;">[Cond. ${condParcial?'parcial':'total'}]</span>
+    </div>
+    <div style="font-size:10px;color:#556677;padding:2px 0 5px;font-style:italic;">
+      ⚠ Eficiencia de Murphree no aplica en H-xy. Para E<sub>MV</sub>≠1 usar McCabe-Thiele.
+    </div>
+    <div style="font-size:11px;color:#8899aa;padding:1px 0 3px;">Etapas teóricas (E<sub>MV</sub> = 1)</div>
+    <div class="res-row"><span class="lbl">· N etapas teóricas</span><span class="val good">${N_teo_ps}</span></div>
+    ${condParcial
+      ? '<div class="res-row"><span class="lbl">&nbsp;&nbsp;· Condensador parcial (etapa 1)</span><span class="val" style="color:#f0c060;">1</span></div>'
+      : '<div class="res-row"><span class="lbl">&nbsp;&nbsp;· Condensador total (no es etapa)</span><span class="val" style="color:#556677;">—</span></div>'
+    }
+    <div class="res-row"><span class="lbl">&nbsp;&nbsp;· Platos columna teóricos</span><span class="val good">${Nplatos_ps}</span></div>
+    <div class="res-row"><span class="lbl">&nbsp;&nbsp;· Rehervidor (etapa ${N_teo_ps})</span><span class="val" style="color:#ff6b35;">1</span></div>
+    <div class="res-row"><span class="lbl">&nbsp;&nbsp;· Plato alimentación teórico</span><span class="val">${fp_ps_teo||'—'}</span></div>
+    <div style="font-size:11px;color:#f0c060;padding:4px 0 3px;margin-top:2px;">Etapas reales (E = ${E})</div>
+    <div class="res-row"><span class="lbl">· Platos reales = ⌈${Nplatos_ps} / ${E}⌉</span><span class="val good">${Nplatos_real_ps}</span></div>
+    <div class="res-row"><span class="lbl">&nbsp;&nbsp;· Rehervidor (etapa ${Nplatos_real_ps+1})</span><span class="val" style="color:#ff6b35;">1</span></div>
+    <div class="res-row"><span class="lbl">&nbsp;&nbsp;· Plato alimentación real ≈</span><span class="val" style="color:#f0c060;">${fp_ps_real||'—'}</span></div>
+
+    <div style="color:#7eb8f7;font-weight:bold;padding:6px 0 4px;margin-top:8px;border-top:1px solid #2a3f55;border-bottom:1px solid #2a3f55;margin-bottom:6px;">
+      McCabe-Thiele &nbsp;<span style="font-weight:normal;font-size:11px;color:#7888a0;">[Cond. total]</span>
+    </div>
+    <div style="font-size:11px;color:#8899aa;padding:1px 0 3px;">Etapas teóricas (E<sub>MV</sub> = 1)</div>
+    <div class="res-row"><span class="lbl">· N etapas teóricas</span><span class="val" style="color:#7eb8f7;">${N_teo_mc}</span></div>
+    <div class="res-row"><span class="lbl">&nbsp;&nbsp;· Platos columna teóricos</span><span class="val" style="color:#7eb8f7;">${Nplatos_mc}</span></div>
+    <div class="res-row"><span class="lbl">&nbsp;&nbsp;· Rehervidor (etapa ${N_teo_mc})</span><span class="val" style="color:#ff6b35;">1</span></div>
+    <div class="res-row"><span class="lbl">&nbsp;&nbsp;· Plato alimentación teórico</span><span class="val" style="color:#7eb8f7;">${fp_mc_teo||'—'}</span></div>
+    ${useMurphree ? `
+    <div style="font-size:11px;color:#f0c060;padding:4px 0 3px;margin-top:2px;">Etapas reales (E<sub>MV</sub> = ${EMV_val})</div>
+    <div class="res-row"><span class="lbl">· N etapas reales</span><span class="val" style="color:#f0c060;">${N_real_mc}</span></div>
+    <div class="res-row"><span class="lbl">&nbsp;&nbsp;· Platos columna reales</span><span class="val" style="color:#f0c060;">${Nplatos_mc_real}</span></div>
+    <div class="res-row"><span class="lbl">&nbsp;&nbsp;· Rehervidor (etapa ${N_real_mc})</span><span class="val" style="color:#ff6b35;">1</span></div>
+    <div class="res-row"><span class="lbl">&nbsp;&nbsp;· Plato alimentación real</span><span class="val" style="color:#f0c060;">${fp_mc_realVal||'—'}</span></div>
+    ` : ''}
+
+    <div class="res-row" style="border-top:1px solid #2a3f55;margin-top:6px;padding-top:6px;">
+      <span class="lbl">Diferencia platos teóricos |Pónchon − McCabe|</span>
+      <span class="val ${diffPlatos>0?'warn':'good'}">| ${Nplatos_ps} − ${Nplatos_mc} | = ${diffPlatos}</span>
+    </div>`;
+
+
+  // Propiedades promedio molares en xD y xB para mostrar en ecuaciones
+  const lam_xD  = xD*sys.dhvap1 + (1-xD)*sys.dhvap2;
+  const lam_xB  = xB*sys.dhvap1 + (1-xB)*sys.dhvap2;
+  const CpL_xD  = xD*sys.cpl1   + (1-xD)*sys.cpl2;
+  const CpV_xD  = xD*sys.cpv1   + (1-xD)*sys.cpv2;
+  const CpL_xB  = xB*sys.cpl1   + (1-xB)*sys.cpl2;
+  const CpV_xB  = xB*sys.cpv1   + (1-xB)*sys.cpv2;
+  // λ_medio global (promedio en xD para QC, en xB para QR referencia)
+  const lam_med = (lam_xD + lam_xB) / 2;
+
+  document.getElementById('resCalores').innerHTML=`
+  <div style="font-size:12px;line-height:1.9;">
+
+  <div style="color:#7eb8f7;font-weight:bold;border-bottom:1px solid #2a3f55;padding-bottom:4px;margin-bottom:8px;">
+    Propiedades promedio molares
+  </div>
+  <div style="color:#aabbcc;">
+    λ<sub>D</sub> = x<sub>D</sub>·λ₁ + (1−x<sub>D</sub>)·λ₂
+    = ${xD.toFixed(3)}·${sys.dhvap1.toLocaleString()} + ${(1-xD).toFixed(3)}·${sys.dhvap2.toLocaleString()}
+    = <b>${lam_xD.toFixed(0)} kJ/kmol</b>
+  </div>
+  <div style="color:#aabbcc;">
+    Cp<sub>L,D</sub> = x<sub>D</sub>·CpL₁ + (1−x<sub>D</sub>)·CpL₂
+    = ${xD.toFixed(3)}·${sys.cpl1} + ${(1-xD).toFixed(3)}·${sys.cpl2}
+    = <b>${CpL_xD.toFixed(1)} kJ/(kmol·K)</b>
+  </div>
+  <div style="color:#aabbcc;">
+    Cp<sub>V,D</sub> = x<sub>D</sub>·CpV₁ + (1−x<sub>D</sub>)·CpV₂
+    = ${xD.toFixed(3)}·${sys.cpv1} + ${(1-xD).toFixed(3)}·${sys.cpv2}
+    = <b>${CpV_xD.toFixed(1)} kJ/(kmol·K)</b>
+  </div>
+
+  <div style="color:#7eb8f7;font-weight:bold;border-bottom:1px solid #2a3f55;padding-bottom:4px;margin:10px 0 8px;">
+    Calor del condensador — Q<sub>C</sub>
+  </div>
+  <div style="color:#aabbcc;">
+    Q<sub>C</sub> = V · (H<sub>VD</sub> − H<sub>LD</sub>)
+    &nbsp;≈&nbsp; V · λ<sub>D</sub>
+  </div>
+  <div style="color:#e0e6f0;font-weight:bold;">
+    Q<sub>C</sub> = ${V.toFixed(2)} · ${lam_xD.toFixed(0)}
+    = <span style="color:#4caf50;">${QC.toFixed(0)} kJ/h</span>
+  </div>
+  <div style="color:#aabbcc;font-size:11px;">
+    H<sub>VD</sub>−H<sub>LD</sub> = ${(HVD-HLD).toFixed(0)} kJ/kmol
+    &nbsp;|&nbsp; Q<sub>C</sub>/D = ${QC_D.toFixed(0)} kJ/kmol dest.
+  </div>
+
+  <div style="color:#7eb8f7;font-weight:bold;border-bottom:1px solid #2a3f55;padding-bottom:4px;margin:10px 0 8px;">
+    Calor del rehervidor — Q<sub>R</sub>
+  </div>
+  <div style="color:#aabbcc;">
+    Q<sub>R</sub> = D·H<sub>Δ_R</sub> + W·H<sub>LB</sub> − F·H<sub>F</sub>
+    &nbsp;&nbsp;(balance global de energía)
+  </div>
+  <div style="color:#e0e6f0;font-weight:bold;">
+    Q<sub>R</sub> = ${D.toFixed(2)}·(${pRH.toFixed(0)}) + ${W.toFixed(2)}·(${HLB.toFixed(0)}) − ${F.toFixed(1)}·(${HF.toFixed(0)})
+    = <span style="color:#ff6b35;">${QR.toFixed(0)} kJ/h</span>
+  </div>
+  <div style="color:#aabbcc;font-size:11px;">
+    Q<sub>R</sub>/W = ${(QR/W).toFixed(0)} kJ/kmol fondo
+    &nbsp;|&nbsp; λ<sub>B</sub> = ${lam_xB.toFixed(0)} kJ/kmol
+  </div>
+
+  </div>`;
+
+
+  // ── Síntesis de datos del problema ──────────────────────────────
+  const vleRows = puntos.sort((a,b)=>b.x-a.x).map(p=>
+    '<tr><td>'+p.T.toFixed(2)+'</td><td>'+p.x.toFixed(4)+'</td><td>'+p.y.toFixed(4)+'</td>'+
+    '<td>'+p.HL.toFixed(0)+'</td><td>'+p.HV.toFixed(0)+'</td></tr>'
+  ).join('');
+
+  const feedLabels = {sat_liq:'Líquido saturado (q=1)',sat_vap:'Vapor saturado (q=0)',
+    mixed:'Mezcla L/V',subcooled:'Líquido subenfriado',superheated:'Vapor sobrecalentado',hf:'H_F directo'};
+
+  document.getElementById('resSintesis').innerHTML=`
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;flex-wrap:wrap;">
+
+    <div>
+      <div style="color:#7eb8f7;font-weight:bold;border-bottom:1px solid #2a3f55;padding-bottom:4px;margin-bottom:8px;">
+        Sistema: ${sys.nombre}
+      </div>
+      <table style="border-collapse:collapse;font-size:11px;width:100%;">
+        <tr style="background:#1a2d45;">
+          <th style="padding:4px 8px;text-align:left;color:#7eb8f7;">Propiedad</th>
+          <th style="padding:4px 8px;color:#7eb8f7;">${sys.comp1}</th>
+          <th style="padding:4px 8px;color:#7eb8f7;">${sys.comp2}</th>
+        </tr>
+        <tr><td style="padding:3px 8px;color:#7888a0;">Tb (°C)</td>
+          <td style="padding:3px 8px;text-align:center;">${sys.tb1}</td>
+          <td style="padding:3px 8px;text-align:center;">${sys.tb2}</td></tr>
+        <tr style="background:#0d1e32;"><td style="padding:3px 8px;color:#7888a0;">λ (kJ/kmol)</td>
+          <td style="padding:3px 8px;text-align:center;">${sys.dhvap1.toLocaleString()}</td>
+          <td style="padding:3px 8px;text-align:center;">${sys.dhvap2.toLocaleString()}</td></tr>
+        <tr><td style="padding:3px 8px;color:#7888a0;">CpL (kJ/kmol·K)</td>
+          <td style="padding:3px 8px;text-align:center;">${sys.cpl1}</td>
+          <td style="padding:3px 8px;text-align:center;">${sys.cpl2}</td></tr>
+        <tr style="background:#0d1e32;"><td style="padding:3px 8px;color:#7888a0;">CpV (kJ/kmol·K)</td>
+          <td style="padding:3px 8px;text-align:center;">${sys.cpv1}</td>
+          <td style="padding:3px 8px;text-align:center;">${sys.cpv2}</td></tr>
+        <tr><td style="padding:3px 8px;color:#7888a0;">T ref (°C)</td>
+          <td colspan="2" style="padding:3px 8px;text-align:center;">${sys.tb2} (Tb comp. pesado)</td></tr>
+      </table>
+
+      <div style="margin-top:12px;color:#7eb8f7;font-weight:bold;border-bottom:1px solid #2a3f55;padding-bottom:4px;margin-bottom:8px;">
+        Condiciones de operación
+      </div>
+      <table style="border-collapse:collapse;font-size:11px;width:100%;">
+        <tr><td style="padding:3px 8px;color:#7888a0;">xF / xD / xB</td>
+          <td style="padding:3px 8px;">${xF.toFixed(3)} / ${xD.toFixed(3)} / ${xB.toFixed(3)}</td></tr>
+        <tr style="background:#0d1e32;"><td style="padding:3px 8px;color:#7888a0;">F (kmol/h)</td>
+          <td style="padding:3px 8px;">${F.toFixed(1)}</td></tr>
+        <tr><td style="padding:3px 8px;color:#7888a0;">R</td>
+          <td style="padding:3px 8px;">${R.toFixed(3)}</td></tr>
+        <tr style="background:#0d1e32;"><td style="padding:3px 8px;color:#7888a0;">q (feed)</td>
+          <td style="padding:3px 8px;">${q.toFixed(4)} — ${feedLabels[document.getElementById('feedTipo').value]||''}</td></tr>
+        <tr><td style="padding:3px 8px;color:#7888a0;">Eficiencia E</td>
+          <td style="padding:3px 8px;">${E}</td></tr>
+        <tr style="background:#0d1e32;"><td style="padding:3px 8px;color:#7888a0;">Condensador</td>
+          <td style="padding:3px 8px;">${condParcial?'Parcial (etapa teórica)':'Total (no es etapa)'}</td></tr>
+      </table>
+    </div>
+
+    <div>
+      <div style="color:#7eb8f7;font-weight:bold;border-bottom:1px solid #2a3f55;padding-bottom:4px;margin-bottom:8px;">
+        Tabla de equilibrio VLE — ${sys.nombre} (1 atm)
+        <span style="font-size:10px;color:#556677;font-weight:normal;"> &nbsp; T_ref = ${sys.tb2}°C</span>
+      </div>
+      <div style="max-height:320px;overflow-y:auto;">
+        <table style="border-collapse:collapse;font-size:11px;width:100%;">
+          <thead>
+            <tr style="background:#1a2d45;position:sticky;top:0;">
+              <th style="padding:4px 8px;color:#7eb8f7;">T (°C)</th>
+              <th style="padding:4px 8px;color:#4a9eff;">x₁</th>
+              <th style="padding:4px 8px;color:#ff6b35;">y₁</th>
+              <th style="padding:4px 8px;color:#4a9eff;">H_L (kJ/kmol)</th>
+              <th style="padding:4px 8px;color:#ff6b35;">H_V (kJ/kmol)</th>
+            </tr>
+          </thead>
+          <tbody>${vleRows}</tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>`;
+
+  // ── Pseudo-equilibrio Murphree (para diagrama x-y) ──────────────
+  let curvaPseudoPS = null;
+  let tablaMurphreePS = [];
+  if(useMurphree){
+    // Construir pseudo-curva: y_n = EMV*(y*_n - y_op) + y_op
+    // En Ponchon: y_op se aproxima como la y de la recta de operación de McCabe
+    // (las rectas de op en x-y son las mismas que en McCabe con mismo R y q)
+    curvaPseudoPS = [];
+    for(let x=0;x<=1;x+=0.002){
+      const yStar = interp(puntos,'x','y',x);
+      const yOp   = x >= xOp_mc ? mR_mc*x+bR_mc : mS_mc*x+bS_mc;
+      const yMV   = EMV_val*(yStar-yOp)+yOp;
+      curvaPseudoPS.push({x, y:Math.max(0,Math.min(1,yMV))});
+    }
+    // Tabla Murphree: usar stepsXY que ya tiene los y_MV calculados
+    etNorm.stepsXY.forEach((s,i)=>{
+      if(i===0) return; // saltear condensador
+      const yStar = interp(puntos,'x','y',s.xTo);
+      const yOp   = s.xTo >= xOp_mc ? mR_mc*s.xTo+bR_mc : mS_mc*s.xTo+bS_mc;
+      tablaMurphreePS.push({n:i, x:s.xTo, yStar, yOp, yMV:s.y});
+    });
+  }
+
+  // Tabla Murphree HTML
+  const murphreeHTMLPS = useMurphree ? `
+  <div class="chart-container" style="margin-top:16px;padding:16px 20px;">
+    <div class="chart-title">📊 Pseudo-equilibrio de Murphree (E<sub>MV</sub> = ${EMV_val})</div>
+    <div style="font-size:11px;color:#7888a0;margin-bottom:10px;">
+      <b>y<sub>i,n</sub> = E<sub>MV</sub> · (y*<sub>i,n</sub> − y<sub>i,n+1</sub>) + y<sub>i,n+1</sub></b>
+      &nbsp;&nbsp;donde y*<sub>i,n</sub> = equilibrio real &nbsp;|&nbsp; y<sub>i,n+1</sub> = recta de operación &nbsp;|&nbsp; y<sub>i,n</sub> = pseudo-equilibrio
+    </div>
+    <div style="overflow-x:auto;">
+    <table style="border-collapse:collapse;font-size:12px;width:100%;">
+      <thead><tr style="background:#1a2d45;">
+        <th style="padding:5px 10px;border:1px solid #2a3f55;color:#7eb8f7;">Plato n</th>
+        <th style="padding:5px 10px;border:1px solid #2a3f55;color:#4a9eff;">x<sub>n</sub></th>
+        <th style="padding:5px 10px;border:1px solid #2a3f55;color:#ff6b35;">y*<sub>n</sub> (eq. real)</th>
+        <th style="padding:5px 10px;border:1px solid #2a3f55;color:#4caf50;">y<sub>n+1</sub> (recta op.)</th>
+        <th style="padding:5px 10px;border:1px solid #2a3f55;color:#f0c060;background:#1a2d10;"><b>y<sub>n</sub> (pseudo-eq.)</b></th>
+      </tr></thead>
+      <tbody>
+        ${tablaMurphreePS.map(r=>`<tr>
+          <td style="padding:4px 10px;border:1px solid #1e3048;text-align:center;">${r.n}</td>
+          <td style="padding:4px 10px;border:1px solid #1e3048;text-align:center;color:#4a9eff;">${r.x.toFixed(4)}</td>
+          <td style="padding:4px 10px;border:1px solid #1e3048;text-align:center;color:#ff6b35;">${r.yStar.toFixed(4)}</td>
+          <td style="padding:4px 10px;border:1px solid #1e3048;text-align:center;color:#4caf50;">${r.yOp.toFixed(4)}</td>
+          <td style="padding:4px 10px;border:1px solid #1e3048;text-align:center;color:#f0c060;font-weight:bold;">${r.yMV.toFixed(4)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>
+  </div>` : '';
+
+  // Cuadro explicativo Murphree
+  const murphreeExpPS = useMurphree ? `
+  <div class="chart-container" style="margin-top:16px;padding:16px 20px;border-color:#f0a500;">
+    <div class="chart-title" style="color:#f0c060;">📘 Eficiencia de Murphree en Pónchon-Savarit</div>
+    <div style="font-size:12px;color:#aabbcc;line-height:1.9;">
+      <b>Definición:</b> E<sub>MV</sub> = (y<sub>n</sub> − y<sub>n+1</sub>) / (y*<sub>n</sub> − y<sub>n+1</sub>)<br>
+      <b>Despejando:</b> <span style="color:#f0c060;font-weight:bold;">y<sub>i,n</sub> = E<sub>MV</sub> · (y*<sub>i,n</sub> − y<sub>i,n+1</sub>) + y<sub>i,n+1</sub></span><br><br>
+      <b>Aplicación en Pónchon-Savarit:</b><br>
+      · La eficiencia de Murphree se aplica en el diagrama x-y, no en el H-xy<br>
+      · En H-xy: las líneas de operación y los polos no cambian<br>
+      · En H-xy: el segmento de equilibrio de cada plato termina en un x* corregido
+        (el plato no alcanza el equilibrio completo → x* queda a menor distancia de xD)<br>
+      · En x-y: se construye la curva de pseudo-equilibrio (naranja) y se escalona sobre ella<br>
+      · El plato de alimentación se determina sobre la pseudo-curva (puede diferir del caso E=1)<br><br>
+      <b>Con E<sub>MV</sub> = ${EMV_val}:</b> cada plato alcanza el ${(EMV_val*100).toFixed(0)}% del equilibrio teórico.
+      Se necesitan más platos reales que con E=1.
+    </div>
+  </div>` : '';
+
+  // Graficar
+  dibujarColumna(document.getElementById('cvColumna').getContext('2d'),
+    {sys,xF,xD,xB,F,q,D,W,L,V,L2,V2,R,Rmin,N:etNorm.n,Nreal,feedPlate:etNorm.feedPlate,E,HF,QC,QR});
+  graficarHxy(puntos,pRx,pRH,pSx,pSH,etNorm,xD,xB,xF,HF,'normal',condParcial);
+  const N_mc_graf = useMurphree ? N_mc_real : N_mc;
+  graficarXY(puntos,xD,xB,xF,q,R,Rmin,etNorm.stepsXY,xPinchXY,yPinchXY,
+             mS_mc,bS_mc,mR_mc,bR_mc,xOp_mc,yOp_mc,N_mc_graf,fp_mc,
+             curvaPseudoPS,useMurphree,EMV_val);
+
+  // Insertar tablas y explicacion Murphree despues del diagrama x-y
+  const contXY = document.getElementById('cvXY').parentElement;
+  let divMV = document.getElementById('murphreeDivPS');
+  if(!divMV){ divMV=document.createElement('div'); divMV.id='murphreeDivPS'; contXY.parentElement.insertBefore(divMV,contXY.nextSibling); }
+  divMV.innerHTML = murphreeHTMLPS + murphreeExpPS;
+}
+
+
+// ══════════════════════════
+// DIAGRAMA DE COLUMNA
+// ══════════════════════════
+function dibujarColumna(ctx,d){
+  const CW=960,CH=720;
+  ctx.clearRect(0,0,CW,CH);
+  ctx.fillStyle='#0a1520'; ctx.fillRect(0,0,CW,CH);
+
+  const cX=285,cY=110,cW=80,cH=460,cCX=cX+cW/2;
+  const condX=cX+cW+155,condY=cY+45,condR=30;
+  const rebX=cX-15,rebY=cY+cH+55,rebW=cW+30,rebH=58,rebCX=rebX+rebW/2;
+
+  // Columna
+  ctx.strokeStyle='#4a6fa5';ctx.lineWidth=3;ctx.setLineDash([]);
+  ctx.beginPath();
+  const r=16;
+  ctx.moveTo(cX,cY+r);ctx.quadraticCurveTo(cX,cY,cX+r,cY);
+  ctx.lineTo(cX+cW-r,cY);ctx.quadraticCurveTo(cX+cW,cY,cX+cW,cY+r);
+  ctx.lineTo(cX+cW,cY+cH-r);ctx.quadraticCurveTo(cX+cW,cY+cH,cX+cW-r,cY+cH);
+  ctx.lineTo(cX+r,cY+cH);ctx.quadraticCurveTo(cX,cY+cH,cX,cY+cH-r);
+  ctx.closePath();ctx.stroke();ctx.fillStyle='#0d1e32';ctx.fill();
+  ctx.strokeStyle='#1e3048';ctx.lineWidth=1;
+  for(let i=1;i<10;i++){const py=cY+(cH/10)*i;ctx.beginPath();ctx.moveTo(cX+6,py);ctx.lineTo(cX+cW-6,py);ctx.stroke();}
+  ctx.textAlign='center';ctx.font='bold 11px Arial';ctx.fillStyle='#7eb8f7';
+  ctx.fillText('Pónchon-Savarit',cCX,cY+22);
+  ctx.font='10px Arial';ctx.fillStyle='#556677';
+  ctx.fillText(d.sys.nombre,cCX,cY+38);
+  ctx.fillText('N='+d.N+' | R='+d.R.toFixed(2),cCX,cY+54);
+  ctx.textAlign='left';
+
+  // Condensador
+  ctx.strokeStyle='#4caf50';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.arc(condX,condY,condR,0,2*Math.PI);ctx.stroke();
+  ctx.fillStyle='#0d1e10';ctx.fill();
+  ctx.strokeStyle='#4caf50';ctx.lineWidth=1.5;
+  for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(condX-14,condY+i*8);ctx.bezierCurveTo(condX-7,condY+i*8-6,condX+7,condY+i*8+6,condX+14,condY+i*8);ctx.stroke();}
+  ctx.font='bold 12px Arial';ctx.fillStyle='#4caf50';ctx.textAlign='center';
+  ctx.fillText('Condensador',condX,condY-condR-8);ctx.textAlign='left';
+
+  // Rehervidor
+  ctx.strokeStyle='#ff6b35';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.roundRect(rebX,rebY,rebW,rebH,8);ctx.stroke();
+  ctx.fillStyle='#1a0d05';ctx.fill();
+  ctx.strokeStyle='#ff6b35';ctx.lineWidth=1.5;
+  for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(rebCX-20,rebY+rebH/2+i*10);ctx.bezierCurveTo(rebCX-10,rebY+rebH/2+i*10-5,rebCX+10,rebY+rebH/2+i*10+5,rebCX+20,rebY+rebH/2+i*10);ctx.stroke();}
+  ctx.font='bold 11px Arial';ctx.fillStyle='#ff6b35';ctx.textAlign='center';
+  ctx.fillText('Rehervidor',rebCX,rebY+rebH/2+5);ctx.textAlign='left';
+
+  // V: columna → condensador (naranja punteado por izquierda)
+  const vExtX=cX+8;
+  ctx.strokeStyle='#e65100';ctx.lineWidth=2.5;ctx.setLineDash([5,3]);
+  ctx.beginPath();ctx.moveTo(vExtX,cY+cH*0.30);ctx.lineTo(vExtX,cY-20);ctx.lineTo(condX,cY-20);ctx.lineTo(condX,condY-condR);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(condX,condY-condR-2);ctx.lineTo(condX-6,condY-condR+8);ctx.lineTo(condX+6,condY-condR+8);ctx.closePath();ctx.fillStyle='#e65100';ctx.fill();
+  ctx.font='bold 12px Arial';ctx.fillStyle='#e65100';ctx.fillText('V='+d.V.toFixed(1),vExtX+6,cY+cH*0.18);
+
+  // D: condensador → derecha
+  const dX0=condX+condR,dX1=condX+condR+200,dY=condY;
+  dibujarFlechaCol(ctx,dX0,dY,dX1,dY,'#4caf50');
+  dibujarValvulaCol(ctx,dX0+95,dY);
+  ctx.font='bold 13px Arial';ctx.fillStyle='#4caf50';ctx.fillText('D',dX1+8,dY-6);
+  ctx.font='11px Arial';ctx.fillStyle='#aabbcc';
+  ctx.fillText('xD='+d.xD.toFixed(3),dX1+8,dY+10);ctx.fillText(d.D.toFixed(1)+' kmol/h',dX1+8,dY+26);
+
+  // L: condensador → columna (verde, trazo único)
+  const Lval=d.L, Dval=d.D>0?d.D:1, lEntryX=cX+cW-10, lBendY=condY+condR+22;
+  ctx.strokeStyle='#4caf50';ctx.lineWidth=2.5;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(condX,condY+condR);ctx.lineTo(condX,lBendY);ctx.lineTo(lEntryX,lBendY);ctx.lineTo(lEntryX,cY+cH*0.36);ctx.stroke();
+  const aY=cY+cH*0.18;
+  ctx.beginPath();ctx.moveTo(lEntryX,aY+10);ctx.lineTo(lEntryX-6,aY);ctx.lineTo(lEntryX+6,aY);ctx.closePath();ctx.fillStyle='#4caf50';ctx.fill();
+  const midLx=(condX+lEntryX)/2;
+  ctx.textAlign='center';ctx.font='bold 11px Arial';ctx.fillStyle='#4caf50';
+  ctx.fillText('← L='+Lval.toFixed(1),midLx,lBendY-6);
+  ctx.fillText('L/D='+(Lval/Dval).toFixed(3),midLx,lBendY+14);ctx.textAlign='left';
+
+  // Feed
+  const fY=cY+cH*0.45;
+  dibujarFlechaCol(ctx,cX-175,fY,cX-3,fY,'#7eb8f7');
+  dibujarValvulaCol(ctx,cX-55,fY);
+  ctx.font='bold 12px Arial';ctx.fillStyle='#7eb8f7';ctx.fillText('F',cX-173,fY-20);
+  ctx.font='11px Arial';ctx.fillStyle='#aabbcc';
+  ctx.fillText('xF='+d.xF.toFixed(3),cX-173,fY-5);ctx.fillText(d.F.toFixed(1)+' kmol/h',cX-173,fY+12);
+  const cLabels={sat_liq:'Liq. burbuja',sat_vap:'Vap. sat.',mixed:'Mezcla L/V',subcooled:'Liq. sub.',superheated:'Vap. sobrec.',hf:'H_F directo'};
+  ctx.font='italic 10px Arial';ctx.fillStyle='#556677';
+  ctx.fillText(cLabels[document.getElementById('feedTipo').value]||'',cX-173,fY+26);
+
+  // L2: columna → rehervidor (azul, izquierda)
+  const l2X=cX+10;
+  ctx.strokeStyle='#4a9eff';ctx.lineWidth=2.5;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(l2X,cY+cH-8);ctx.lineTo(l2X,rebY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(l2X,rebY-2);ctx.lineTo(l2X-6,rebY-12);ctx.lineTo(l2X+6,rebY-12);ctx.closePath();ctx.fillStyle='#4a9eff';ctx.fill();
+  ctx.font='bold 11px Arial';ctx.fillStyle='#4a9eff';ctx.fillText('L₂='+d.L2.toFixed(1),l2X-80,cY+cH+28);
+
+  // V2: rehervidor → columna (naranja, derecha)
+  const v2EntryX=cX+cW-10,v2Y=rebY+rebH/2;
+  ctx.strokeStyle='#bf360c';ctx.lineWidth=2.5;ctx.setLineDash([5,3]);
+  ctx.beginPath();ctx.moveTo(rebX+rebW,v2Y);ctx.lineTo(v2EntryX,v2Y);ctx.lineTo(v2EntryX,cY+cH-8);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(v2EntryX,cY+cH-8);ctx.lineTo(v2EntryX-6,cY+cH+2);ctx.lineTo(v2EntryX+6,cY+cH+2);ctx.closePath();ctx.fillStyle='#bf360c';ctx.fill();
+  ctx.font='bold 11px Arial';ctx.fillStyle='#bf360c';
+  ctx.fillText('V₂='+d.V2.toFixed(1),rebX+rebW+6,v2Y-8);
+
+  // W
+  const wX0=rebX+rebW,wX1=wX0+195,wY=rebY+rebH/2;
+  dibujarFlechaCol(ctx,wX0,wY,wX1,wY,'#ff6b35');
+  dibujarValvulaCol(ctx,wX0+90,wY);
+  ctx.font='bold 13px Arial';ctx.fillStyle='#ff6b35';ctx.fillText('W',wX1+8,wY-6);
+  ctx.font='11px Arial';ctx.fillStyle='#aabbcc';
+  ctx.fillText('xB='+d.xB.toFixed(3),wX1+8,wY+10);ctx.fillText(d.W.toFixed(1)+' kmol/h',wX1+8,wY+26);
+
+  // Vapor → rehervidor
+  ctx.font='italic 11px Arial';ctx.fillStyle='#ff6b35';ctx.textAlign='right';ctx.fillText('Vapor →',rebX-6,rebY+rebH/2+5);ctx.textAlign='left';
+
+  // Qc
+  ctx.strokeStyle='#e74c3c';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(condX-condR,condY);ctx.lineTo(condX-condR-35,condY);ctx.lineTo(condX-condR-35,condY-28);ctx.stroke();
+  for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(condX-condR-35,condY-40-i*10,5,0,Math.PI,false);ctx.stroke();}
+  ctx.fillStyle='#e74c3c';ctx.font='bold 11px Arial';ctx.fillText('Qc',condX-condR-54,condY-28);
+
+  // Qr
+  ctx.beginPath();ctx.moveTo(rebX,rebY+rebH/2);ctx.lineTo(rebX-35,rebY+rebH/2);ctx.lineTo(rebX-35,rebY+rebH/2+28);ctx.stroke();
+  for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(rebX-35,rebY+rebH/2+40+i*10,5,0,Math.PI,true);ctx.stroke();}
+  ctx.fillText('Qr',rebX-54,rebY+rebH/2+38);
+
+  // V interno
+  ctx.strokeStyle='#e65100';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(vExtX,cY+cH*0.24);ctx.lineTo(vExtX,cY+cH*0.38);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(vExtX,cY+cH*0.28);ctx.lineTo(vExtX-5,cY+cH*0.34);ctx.lineTo(vExtX+5,cY+cH*0.34);ctx.closePath();ctx.fillStyle='#e65100';ctx.fill();
+
+  // V2 interno
+  ctx.strokeStyle='#bf360c';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(v2EntryX,cY+cH*0.62);ctx.lineTo(v2EntryX,cY+cH*0.78);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(v2EntryX,cY+cH*0.66);ctx.lineTo(v2EntryX-5,cY+cH*0.72);ctx.lineTo(v2EntryX+5,cY+cH*0.72);ctx.closePath();ctx.fillStyle='#bf360c';ctx.fill();
+
+  // L2 interno
+  ctx.strokeStyle='#4a9eff';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(l2X,cY+cH*0.62);ctx.lineTo(l2X,cY+cH*0.80);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(l2X,cY+cH*0.76);ctx.lineTo(l2X-5,cY+cH*0.70);ctx.lineTo(l2X+5,cY+cH*0.70);ctx.closePath();ctx.fillStyle='#4a9eff';ctx.fill();
+  ctx.font='11px Arial';ctx.fillStyle='#4a9eff';ctx.fillText('L₂='+d.L2.toFixed(1),l2X+5,cY+cH*0.73);
+
+  // Caja parámetros
+  const bx=14,by=14,bw=220,bh=152;
+  ctx.fillStyle='rgba(10,21,32,0.95)';ctx.fillRect(bx,by,bw,bh);
+  ctx.strokeStyle='#1e3048';ctx.lineWidth=1;ctx.strokeRect(bx,by,bw,bh);
+  ctx.fillStyle='#7eb8f7';ctx.font='bold 12px Arial';ctx.fillText('PARÁMETROS',bx+12,by+20);
+  ctx.font='11px Arial';ctx.fillStyle='#aabbcc';
+  ctx.fillText(d.sys.nombre,bx+12,by+38);
+  ctx.fillText('q = '+d.q.toFixed(4),bx+12,by+55);
+  ctx.fillText('R = '+d.R.toFixed(3)+'  |  L/D = '+(d.L/d.D).toFixed(3),bx+12,by+72);
+  ctx.fillText('Rmin = '+d.Rmin.toFixed(4),bx+12,by+89);
+  ctx.fillText('R/Rmin = '+(d.R/d.Rmin).toFixed(3),bx+12,by+106);
+  ctx.fillText('N teór. = '+d.N+'  |  N reales = '+d.Nreal,bx+12,by+123);
+  ctx.fillText('E = '+d.E+'  |  Feed plato = '+(d.feedPlate||'—'),bx+12,by+140);
+}
+
+function dibujarFlechaCol(ctx,x1,y1,x2,y2,col){
+  const ang=Math.atan2(y2-y1,x2-x1);
+  ctx.strokeStyle=col;ctx.lineWidth=2;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-9*Math.cos(ang-Math.PI/6),y2-9*Math.sin(ang-Math.PI/6));ctx.lineTo(x2-9*Math.cos(ang+Math.PI/6),y2-9*Math.sin(ang+Math.PI/6));ctx.closePath();ctx.fillStyle=col;ctx.fill();
+}
+function dibujarValvulaCol(ctx,x,y){
+  ctx.strokeStyle='#7888a0';ctx.lineWidth=1.5;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(x-8,y-6);ctx.lineTo(x+8,y+6);ctx.moveTo(x+8,y-6);ctx.lineTo(x-8,y+6);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x-12,y-8);ctx.lineTo(x-12,y+8);ctx.lineTo(x-4,y);ctx.closePath();ctx.fillStyle='#0f1923';ctx.fill();ctx.stroke();
+}
+
+// ══════════════════════════
+// HELPER H-xy chart builder
+// ══════════════════════════
+function buildHxyDatasets(puntos,steps,stepLines,xD,xB,xF,HF,pRx,pRH,pSx,pSH,condParcial){
+  const byX=[...puntos].sort((a,b)=>a.x-b.x);
+  const byY=[...puntos].sort((a,b)=>a.y-b.y);
+  const curHL=byX.map(p=>({x:p.x,y:p.HL}));
+  const curHV=byY.map(p=>({x:p.y,y:p.HV}));
+
+  // Líneas de operación extendidas: polo → punto en HV → punto en HL
+  const lineasOp=[];
+  if(stepLines&&stepLines.length>0){
+    stepLines.forEach(sl=>{
+      // La recta ya va de (pX,pH) a (x2_HV, H2_HV)
+      // Extendemos la MISMA recta hasta la curva HL
+      // Pendiente: m = (H2 - pH) / (x2 - pX)
+      const xHL = intersect(puntos,'x','HL', sl.pX, sl.pH, sl.x2, sl.H2,
+                            (xi, cx) => xi < cx - 0.0005);
+      const H_HL = xHL !== null ? interp(puntos,'x','HL',xHL) : null;
+      // Trazar: polo → HV → HL (si la extensión existe)
+      lineasOp.push({x:sl.pX, y:sl.pH});
+      lineasOp.push({x:sl.x2, y:sl.H2});
+      if(xHL !== null){
+        lineasOp.push({x:xHL, y:H_HL});
+      }
+      lineasOp.push({x:NaN, y:NaN});
+    });
+  }
+
+  // Líneas de equilibrio — TODAS las etapas incluyendo condensador (1) y rehervidor (N)
+  const allEq = steps.filter(s=>s.tipo==='eq');
+  // El primer segmento eq es el condensador
+  // Condensador total  → se dibuja sin numero (no es etapa)
+  // Condensador parcial → se dibuja con numero 1 (es etapa)
+
+  const escEq=[];
+  allEq.forEach(s=>{
+    escEq.push({x:s.x1,y:s.H1},{x:s.x2,y:s.H2},{x:NaN,y:NaN});
+  });
+
+  // Etiquetas: si cond total, saltear primer segmento
+  const lblPts=[];
+  const eqToLabel = condParcial ? allEq : allEq.slice(1);
+  eqToLabel.forEach((s,i)=>{
+    lblPts.push({x:(s.x1+s.x2)/2, y:(s.H1+s.H2)/2, n:i+1});
+  });
+
+  // Puntos visibles: todos
+  const ptsHV=[];
+  allEq.forEach(s=>{ ptsHV.push({x:s.x1, y:s.H1}); });
+
+  const ptsHL=[];
+  allEq.forEach(s=>{ ptsHL.push({x:s.x2, y:s.H2}); });
+
+  const allH=[...puntos.map(p=>p.HL),...puntos.map(p=>p.HV),pRH,pSH];
+  const Hmin=Math.min(...allH)*1.12, Hmax=Math.max(...allH)*1.08;
+
+  return {curHL,curHV,lineasOp,escEq,lblPts,ptsHV,ptsHL,Hmin,Hmax};
+}
+
+
+function makeHxyChart(canvasId,datasets,Hmin,Hmax,title){
+  if(charts[canvasId]) charts[canvasId].destroy();
+  charts[canvasId]=new Chart(document.getElementById(canvasId),{
+    type:'scatter',
+    data:{datasets},
+    options:{
+      plugins:{datalabels:{display:false},legend:{labels:{color:'#7888a0',font:{size:10}}}},
+      animation:false,
+      scales:{
+        x:{type:'linear',min:0,max:1,title:{display:true,text:'Fracción molar (x, y)',color:'#556677'},ticks:{color:'#556677'},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{min:Hmin,max:Hmax,title:{display:true,text:'H (kJ/kmol)',color:'#556677'},ticks:{color:'#556677'},grid:{color:'rgba(255,255,255,0.04)'}}
+      }
+    }
+  });
+}
+
+// ══════════════════════════
+// H-xy NORMAL
+// ══════════════════════════
+function graficarHxy(puntos,pRx,pRH,pSx,pSH,etapas,xD,xB,xF,HF,tag,condParcial){
+  const HVD_start = interp(puntos,'y','HV',xD);
+  const {curHL,curHV,lineasOp,escEq,lblPts,ptsHV,ptsHL,Hmin,Hmax}=
+    buildHxyDatasets(puntos,etapas.steps,etapas.stepLines,xD,xB,xF,HF,pRx,pRH,pSx,pSH,condParcial);
+  const ds=[
+    {label:'H_L (líq.sat.)', data:curHL, showLine:true, borderColor:'#4a9eff', pointRadius:2, borderWidth:2.5, datalabels:{display:false}},
+    {label:'H_V (vap.sat.)', data:curHV, showLine:true, borderColor:'#ff6b35', pointRadius:2, borderWidth:2.5, datalabels:{display:false}},
+    {label:'Líneas operación', data:lineasOp, showLine:true, borderColor:'rgba(80,200,80,0.55)', pointRadius:0, borderWidth:1.2, datalabels:{display:false}},
+    {label:'Escalones (eq)', data:escEq, showLine:true, borderColor:'#ffffff', pointRadius:0, borderWidth:1.5, datalabels:{display:false}},
+    // Punto de arranque: (xD, HVD) — intersección vertical xD con curva de rocío
+    {label:'Inicio (xD, HVD)', data:[{x:xD,y:HVD_start}], pointRadius:7,
+      backgroundColor:'#ffe082', borderColor:'#ffca28', pointStyle:'rectRot',
+      datalabels:{display:true,formatter:()=>'(xD,HVD)',color:'#ffe082',font:{size:9},anchor:'start',align:'left'}},
+    // Puntos sobre curva HV (rocío) — naranja relleno
+    {label:'Intersec. HV (rocío)', data:ptsHV, pointRadius:6, showLine:false,
+      backgroundColor:'#ff6b35', borderColor:'#fff', borderWidth:1.5, datalabels:{display:false}},
+    // Puntos sobre curva HL (burbuja) — azul relleno
+    {label:'Intersec. HL (burbuja)', data:ptsHL, pointRadius:6, showLine:false,
+      backgroundColor:'#4a9eff', borderColor:'#fff', borderWidth:1.5, datalabels:{display:false}},
+    {label:'Polo Δ_R', data:[{x:pRx,y:pRH}], pointRadius:10, backgroundColor:'#4caf50', borderColor:'#81c784',
+      datalabels:{display:true,formatter:()=>'Δ_R',color:'#4caf50',font:{size:11,weight:'bold'},anchor:'end',align:'top'}},
+    {label:'Polo Δ_S', data:[{x:pSx,y:pSH}], pointRadius:10, backgroundColor:'#ff4444', borderColor:'#ff8888',
+      datalabels:{display:true,formatter:()=>'Δ_S',color:'#ff4444',font:{size:11,weight:'bold'},anchor:'end',align:'bottom'}},
+    {label:'Recta Δ_R — Feed — Δ_S', data:[{x:pRx,y:pRH},{x:xF,y:HF},{x:pSx,y:pSH}], showLine:true,
+      borderColor:'rgba(255,255,100,0.7)', pointRadius:4, backgroundColor:'#ffff66',
+      borderWidth:1.5, borderDash:[6,3], datalabels:{display:false}},
+    {label:'Feed (HF)', data:[{x:xF,y:HF}], pointRadius:8, backgroundColor:'#f0c060', borderColor:'#f0a500', pointStyle:'triangle',
+      datalabels:{display:true,formatter:()=>'Feed',color:'#f0c060',font:{size:10},anchor:'end',align:'top'}},
+    {label:'N etapas', data:lblPts, pointRadius:0, showLine:false,
+      datalabels:{display:true,formatter:v=>v.n,color:'#fff',font:{size:11,weight:'bold'},anchor:'center',align:'center',backgroundColor:'rgba(10,21,32,0.8)',borderRadius:3,padding:2}},
+    {label:'xD', data:[{x:xD,y:Hmin},{x:xD,y:Hmax}], showLine:true, borderColor:'rgba(80,200,80,0.25)', pointRadius:0, borderDash:[4,4], datalabels:{display:false}},
+    {label:'xB', data:[{x:xB,y:Hmin},{x:xB,y:Hmax}], showLine:true, borderColor:'rgba(255,100,100,0.25)', pointRadius:0, borderDash:[4,4], datalabels:{display:false}},
+    {label:'xF', data:[{x:xF,y:Hmin},{x:xF,y:Hmax}], showLine:true, borderColor:'rgba(240,192,96,0.25)', pointRadius:0, borderDash:[4,4], datalabels:{display:false}},
+  ];
+  makeHxyChart('cvHxy',ds,Hmin,Hmax);
+}
+
+// ══════════════════════════
+// H-xy RMIN
+// ══════════════════════════
+
+// ══════════════════════════
+// X-Y COMPARACIÓN
+// ══════════════════════════
+function graficarXY(puntos,xD,xB,xF,q,R,Rmin,stepsPS,xPinch,yPinch,mS_mc,bS_mc,mR_mc,bR_mc,xOp_mc,yOp_mc,N_mc,fp_mc,curvaPseudo,useMurphree,EMV_val){
+  const sorted=[...puntos].sort((a,b)=>a.x-b.x);
+  const curEq=sorted.map(p=>({x:p.x,y:p.y}));
+  const diag=[{x:0,y:0},{x:1,y:1}];
+  const mRm=Rmin/(Rmin+1),bRm=xD/(Rmin+1);
+
+  // Linea q
+  const lineaQ=[];
+  if(Math.abs(q-1)<0.001){lineaQ.push({x:xF,y:0},{x:xF,y:1});}
+  else{for(let i=0;i<=100;i++){const x=i/100;lineaQ.push({x,y:(q/(q-1))*x-xF/(q-1)});}}
+
+  // Escalones McCabe: bisección sobre pseudo-curva si useMurphree, curva real si no
+  function xGraf(yTarget){
+    if(!useMurphree) return interp(puntos,'y','x',yTarget);
+    let lo=0,hi=1;
+    for(let k=0;k<60;k++){
+      const xm=(lo+hi)/2;
+      const yS=interp(puntos,'x','y',xm);
+      const yOp=xm>=(xOp_mc-0.0005)?mR_mc*xm+bR_mc:mS_mc*xm+bS_mc;
+      if(yOp+EMV_val*(yS-yOp)<yTarget) lo=xm; else hi=xm;
+    }
+    return (lo+hi)/2;
+  }
+  const escMC=[{x:xD,y:xD}]; const lblMC=[];
+  let xMC=xD,yMC=xD;
+  for(let i=0;i<(N_mc||0)+2;i++){
+    const xe=xGraf(yMC);
+    escMC.push({x:xMC,y:yMC},{x:xe,y:yMC});
+    const yNew=xe>=(xOp_mc-0.0005)?mR_mc*xe+bR_mc:mS_mc*xe+bS_mc;
+    escMC.push({x:xe,y:yNew});
+    lblMC.push({x:(xMC+xe)/2,y:yMC+0.022,n:i+1});
+    xMC=xe;yMC=yNew;
+    if(xMC<=xB+0.001)break;
+  }
+
+  if(charts['cvXY']) charts['cvXY'].destroy();
+  charts['cvXY']=new Chart(document.getElementById('cvXY'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Equilibrio',      data:curEq,  showLine:true,borderColor:'#4a9eff',pointRadius:2,borderWidth:2,     datalabels:{display:false}},
+      {label:'Diagonal',        data:diag,   showLine:true,borderColor:'#334455',pointRadius:0,borderDash:[4,4],  datalabels:{display:false}},
+      {label:'Enriq.(McCabe)',  data:Array.from({length:101},(_,i)=>{const x=i/100;return{x,y:mR_mc*x+bR_mc};}),
+        showLine:true,borderColor:'#4caf50',pointRadius:0,borderWidth:2,datalabels:{display:false}},
+      {label:'Agot.(McCabe)',   data:Array.from({length:101},(_,i)=>{const x=i/100;return{x,y:mS_mc*x+bS_mc};}),
+        showLine:true,borderColor:'#ff6b35',pointRadius:0,borderWidth:2,datalabels:{display:false}},
+      {label:'Linea q',         data:lineaQ, showLine:true,borderColor:'#f0c060',pointRadius:0,borderWidth:1.5,borderDash:[6,3],datalabels:{display:false}},
+      {label:'Rmin (ref)',      data:Array.from({length:101},(_,i)=>{const x=i/100;return{x,y:mRm*x+bRm};}),
+        showLine:true,borderColor:'rgba(255,193,7,0.35)',pointRadius:0,borderDash:[3,5],datalabels:{display:false}},
+      {label:'Pinch',           data:[{x:xPinch,y:yPinch}],pointRadius:9,backgroundColor:'#ff4444',
+        borderColor:'#ff8888',pointStyle:'triangle',
+        datalabels:{display:true,formatter:()=>'Pinch',color:'#ff6666',font:{size:10,weight:'bold'},anchor:'end',align:'top'}},
+      // Pseudo-curva Murphree (si aplica)
+      ...(curvaPseudo?[{label:`Pseudo-eq. Murphree (E=${EMV_val})`,data:curvaPseudo,showLine:true,borderColor:'#ff9800',borderWidth:2,borderDash:[4,2],pointRadius:0,datalabels:{display:false}}]:[]),
+      {label:'Escalones McCabe',data:escMC,  showLine:true,borderColor:'#4caf50',pointRadius:0,borderWidth:1.5,  datalabels:{display:false}},
+      {label:'N McCabe',        data:lblMC,  pointRadius:0,showLine:false,
+        datalabels:{display:true,formatter:v=>v.n,color:'#fff',font:{size:11,weight:'bold'},
+          anchor:'center',align:'center',backgroundColor:'rgba(10,21,32,0.8)',borderRadius:3,padding:2}},
+      {label:'xD',data:[{x:xD,y:0},{x:xD,y:1}],showLine:true,borderColor:'rgba(80,200,80,0.2)',  pointRadius:0,borderDash:[5,5],datalabels:{display:false}},
+      {label:'xB',data:[{x:xB,y:0},{x:xB,y:1}],showLine:true,borderColor:'rgba(255,100,100,0.2)',pointRadius:0,borderDash:[5,5],datalabels:{display:false}},
+      {label:'xF',data:[{x:xF,y:0},{x:xF,y:1}],showLine:true,borderColor:'rgba(240,192,96,0.2)', pointRadius:0,borderDash:[5,5],datalabels:{display:false}},
+    ]},
+    options:{
+      plugins:{datalabels:{display:false},legend:{labels:{color:'#7888a0',font:{size:11}}}},
+      animation:false,
+      scales:{
+        x:{type:'linear',min:0,max:1,
+          title:{display:true,text:'x (fraccion molar liquido) — McCabe-Thiele',color:'#556677'},
+          ticks:{color:'#556677'},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{min:0,max:1,
+          title:{display:true,text:'y (fraccion molar vapor)',color:'#556677'},
+          ticks:{color:'#556677'},grid:{color:'rgba(255,255,255,0.04)'}}
+      }
+    }
+  });
+}
+
+// ══════════════════════════
+// ══════════════════════════
+// GUARDAR ESCENARIO
+// ══════════════════════════
+function guardarEscenario(){
+  const params = {
+    sistema:  sistemaActual,
+    xF:       document.getElementById('xF').value,
+    xD:       document.getElementById('xD').value,
+    xB:       document.getElementById('xB').value,
+    F:        document.getElementById('F').value,
+    R:        document.getElementById('R').value,
+    E:        document.getElementById('E').value,
+    feedTipo: document.getElementById('feedTipo').value,
+    qVal:     document.getElementById('qVal').value,
+    TF_s:     document.getElementById('TF_s').value,
+    CpF_s:    document.getElementById('CpF_s').value,
+    TL_s:     document.getElementById('TL_s').value,
+    Tb_s:     document.getElementById('Tb_s').value,
+    Tsc_s:    document.getElementById('Tsc_s').value,
+    CpV_s:    document.getElementById('CpV_s').value,
+    lam_s:    document.getElementById('lam_s').value,
+    HF_v:     document.getElementById('HF_v').value,
+    chkQC:    document.getElementById('chkQC').checked,
+    QC_v:     document.getElementById('QC_v').value,
+    m_n1:     document.getElementById('m_n1').value,
+    m_n2:     document.getElementById('m_n2').value,
+    m_tb1:    document.getElementById('m_tb1').value,
+    m_tb2:    document.getElementById('m_tb2').value,
+    m_dh1:    document.getElementById('m_dh1').value,
+    m_dh2:    document.getElementById('m_dh2').value,
+    m_cpl1:   document.getElementById('m_cpl1').value,
+    m_cpl2:   document.getElementById('m_cpl2').value,
+    m_cpv1:   document.getElementById('m_cpv1').value,
+    m_cpv2:   document.getElementById('m_cpv2').value,
+    m_azeo:   document.getElementById('m_azeo').value,
+    m_xazeo:  document.getElementById('m_xazeo').value,
+    filasVLE: JSON.stringify(filasVLE),
+  };
+
+  const nombre = prompt(
+    'Nombre del escenario:',
+    params.sistema+'_xF'+params.xF+'_xD'+params.xD+'_R'+params.R
+  );
+  if(!nombre) return;
+
+  // Leer el source original desde el textarea oculto (no toca el DOM modificado)
+  const src = document.getElementById('_src_').value;
+
+  // Reemplazar el placeholder con los datos del escenario
+  const pJson = JSON.stringify(params);
+  const filled = src.replace('"__SCENARIO__"', pJson);
+
+  // Descargar
+  const blob = new Blob([filled], {type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = nombre.replace(/[^a-zA-Z0-9_\-]/g,'_')+'.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Init ──
+window.addEventListener('DOMContentLoaded',()=>{
+  setSistema('hexhep');
+  renderTablaVLE();
+  // Si hay datos de escenario guardado, cargarlos y calcular
+  try{
+    var sc = "__SCENARIO__";
+    if(typeof sc === 'object' && sc !== null){
+      var p = sc;
+      sistemaActual = p.sistema;
+      setSistema(p.sistema);
+      ["xF","xD","xB","F","R","E","TF_s","CpF_s","TL_s","Tb_s","Tsc_s",
+       "CpV_s","lam_s","HF_v","QC_v","m_n1","m_n2","m_tb1","m_tb2",
+       "m_dh1","m_dh2","m_cpl1","m_cpl2","m_cpv1","m_cpv2","m_xazeo"]
+      .forEach(function(id){
+        var el=document.getElementById(id);
+        if(el && p[id]!==undefined) el.value=p[id];
+      });
+      document.getElementById('feedTipo').value = p.feedTipo;
+      toggleFeedPanel();
+      document.getElementById('qVal').value = p.qVal;
+      document.getElementById('chkQC').checked = p.chkQC;
+      toggleQCPanel();
+      document.getElementById('m_azeo').value = p.m_azeo;
+      toggleAzeoInput();
+      try{ filasVLE=JSON.parse(p.filasVLE); renderTablaVLE(); }catch(e){}
+      setTimeout(calcular, 400);
+    }
+  }catch(e){}
+});
+</script>
+<script>
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwT1AUVign-rP9BPnjUIFykCZn8X8kzWzpKTwJWmCqS9y1Za5dmeIDmVvGLgWHmFJTt/exec';
+var SHEET_MOODLE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS09mIetefP20COTyf40Ai_gCR1LWZhqESvPdTZrLSF9Dwjg-fo9iYOGCVDQXKHdgh8VyuAKUtEB6kc/pub?gid=0&single=true&output=csv';
+var SHEET_COM = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStyv7GZHSdRswt5r5mpXfI61SiA1oQ8IDUQnjXIVDej75n7COn-EpeuKT76u8aS1hQo9yOt04GSnpc/pub?gid=0&single=true&output=csv';
+var CADMIN = 'GSADMIN-2026';
+var SSKEY = 'ponchon_v1';
+var licActiva = null;
+var CBASE = [
+  {clave:'GS-2026-PRIVADO-USO-P001',nombre:'Gustavo Sanchez',inst:'PRIVADO',grupo:'USO',activa:true},
+  {clave:'GS-2026-COM-DEST-N001',nombre:'Demo 1',inst:'COM',grupo:'DEST',activa:true},
+  {clave:'GS-2026-COM-DEST-N003',nombre:'Demo 3',inst:'COM',grupo:'DEST',activa:true}
+];
+
+function getHuella(){
+  var d = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height, String(new Date().getTimezoneOffset())].join('|');
+  var h = 0;
+  for (var i = 0; i < d.length; i++) { h = ((h << 5) - h) + d.charCodeAt(i); h = h | 0; }
+  return Math.abs(h).toString(36).toUpperCase();
+}
+
+function getExtras() {
+  try { return JSON.parse(localStorage.getItem('ponchon_extras') || '[]'); } catch(e) { return []; }
+}
+
+function allClaves() { return CBASE.concat(getExtras()); }
+
+function parseCSV(txt) {
+  var rows = txt.trim().split('\n').map(function(r){ return r.trim(); }).filter(Boolean);
+  if (rows.length < 2) return [];
+  var hdrs = rows[0].split(',').map(function(h){ return h.trim().toLowerCase().replace(/\r/g, ''); });
+  return rows.slice(1).map(function(row) {
+    var vals = row.split(',').map(function(v){ return v.trim().replace(/\r/g, ''); });
+    var obj = {};
+    hdrs.forEach(function(h, i){ obj[h] = vals[i] || ''; });
+    return obj;
+  });
+}
+
+async function fetchCSV(url, clave) {
+  try {
+    var tp = new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('timeout')); }, 6000); });
+    var r = await Promise.race([fetch(url + '&t=' + Date.now()), tp]);
+    if (!r.ok) return null;
+    var rows = parseCSV(await r.text());
+    var row = rows.find(function(f) {
+      var ck = (f.clave || '').trim().toUpperCase() === clave;
+      var ak = ['TRUE','VERDADERO','SI','1','YES'].indexOf((f.activa || '').trim().toUpperCase()) >= 0;
+      return ck && ak;
+    });
+    if (row) return { admin: false, clave: clave, nombre: row.nombre || '', inst: row.institucion || row.inst || '', grupo: row.grupo || '', fuente: 'sheet' };
+    return null;
+  } catch(e) { return null; }
+}
+
+async function verifClave(input) {
+  input = input.trim().toUpperCase();
+  if (input === CADMIN) return { admin: true };
+  var huella = getHuella();
+  try {
+    var url = APPS_SCRIPT_URL + '?accion=verificar&clave=' + encodeURIComponent(input) + '&huella=' + encodeURIComponent(huella);
+    var tp = new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('timeout')); }, 8000); });
+    var r = await Promise.race([fetch(url), tp]);
+    if (r.ok) {
+      var d = await r.json();
+      if (d.ok) return { admin: false, clave: input, nombre: d.nombre || '', inst: d.producto || '', grupo: d.producto || '', fuente: 'script' };
+      if (d.bloqueado) return { error: d.msg, bloqueado: true };
+    }
+  } catch(e) {}
+  var r1 = await fetchCSV(SHEET_MOODLE, input); if (r1) return r1;
+  var r2 = await fetchCSV(SHEET_COM, input); if (r2) return r2;
+  var loc = allClaves().find(function(c){ return c.clave.toUpperCase() === input && c.activa !== false; });
+  if (loc) return { admin: false, clave: input, nombre: loc.nombre || '', inst: loc.inst || '', grupo: loc.grupo || '', fuente: 'local' };
+  return null;
+}
+
+async function activarLicencia() {
+  var inp = document.getElementById('inputClave');
+  var btn = document.querySelector('.act-btn');
+  var err = document.getElementById('errorClave');
+  var val = inp.value;
+  err.textContent = ''; inp.style.borderColor = '';
+  if (!val.trim()) { err.textContent = 'Ingresá una clave.'; return; }
+  btn.textContent = 'Verificando...'; btn.disabled = true;
+  err.style.color = '#4a9eff'; err.textContent = 'Consultando servidor...';
+  var res = await verifClave(val);
+  btn.textContent = '✓ Activar'; btn.disabled = false;
+  err.style.color = '#f44336'; err.textContent = '';
+  if (!res) { err.textContent = 'Clave inválida.'; inp.style.borderColor = '#f44336'; return; }
+  if (res.error) { err.style.color = res.bloqueado ? '#f44336' : '#ff9800'; err.textContent = (res.bloqueado ? 'Bloqueado: ' : '') + res.error; return; }
+  if (res.admin) { document.getElementById('pantallaActivacion').classList.add('oculto'); openAdmin(); return; }
+  sessionStorage.setItem(SSKEY, JSON.stringify(res));
+  licActiva = res; showBadge(res);
+  document.getElementById('pantallaActivacion').classList.add('oculto');
+}
+
+function cerrarSesion() {
+  if (!confirm('Cerrar sesión?')) return;
+  sessionStorage.removeItem(SSKEY); licActiva = null;
+  document.getElementById('badgeLicencia').textContent = '';
+  document.getElementById('btnCerrarSesion').style.display = 'none';
+  document.getElementById('inputClave').value = '';
+  document.getElementById('errorClave').textContent = '';
+  document.getElementById('pantallaActivacion').classList.remove('oculto');
+}
+
+function showBadge(lic) {
+  var b = document.getElementById('badgeLicencia');
+  b.textContent = '✓ ' + (lic.nombre ? lic.nombre : lic.inst);
+  b.title = 'Licencia: ' + lic.clave;
+  document.getElementById('btnCerrarSesion').style.display = 'inline-block';
+}
+
+function openAdmin() { renderAdmin(); document.getElementById('panelAdmin').classList.add('visible'); }
+
+function cerrarAdmin() {
+  document.getElementById('panelAdmin').classList.remove('visible');
+  if (!licActiva) { document.getElementById('pantallaActivacion').classList.remove('oculto'); document.getElementById('inputClave').value = ''; }
+}
+
+async function renderAdmin() {
+  var tbody = document.getElementById('tablaClaves');
+  var msg = document.getElementById('adminMsg');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#556677;padding:10px;">Cargando...</td></tr>';
+  try {
+    var tp = new Promise(function(_, rj){ setTimeout(function(){ rj(new Error('t')); }, 5000); });
+    var r = await Promise.race([fetch(APPS_SCRIPT_URL + '?accion=ping'), tp]);
+    if (r.ok) {
+      tbody.innerHTML = '';
+      allClaves().forEach(function(c, i) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + (i+1) + '</td><td style="font-size:10px">' + c.clave + '</td><td>' + (c.nombre||'-') + '</td><td>' + (c.inst||'-') + '</td><td>' + (c.grupo||'-') + '</td><td><span class="tag-activa">Activa</span></td><td><span style="color:#556677;font-size:9px">local</span></td>';
+        tbody.appendChild(tr);
+      });
+      msg.textContent = 'Apps Script conectado';
+      msg.style.color = '#4caf50';
+      return;
+    }
+  } catch(e) {}
+  var todas = allClaves();
+  tbody.innerHTML = '';
+  todas.forEach(function(c, i) {
+    var tr = document.createElement('tr');
+    var activa = c.activa !== false;
+    var btns = '<button class="btn-admin-del" onclick="togClave(\'' + c.clave + '\')">' + (activa ? '⏸' : '▶') + '</button><button class="btn-admin-del" onclick="delClave(\'' + c.clave + '\')">&#128465;</button>';
+    tr.innerHTML = '<td>' + (i+1) + '</td><td style="font-size:10px">' + c.clave + '</td><td>' + (c.nombre||'-') + '</td><td>' + (c.inst||'-') + '</td><td>' + (c.grupo||'-') + '</td><td><span class="' + (activa ? 'tag-activa' : 'tag-inactiva') + '">' + (activa ? 'Activa' : 'Inactiva') + '</span></td><td>' + btns + '</td>';
+    tbody.appendChild(tr);
+  });
+  msg.style.color = '#ff9800';
+  msg.textContent = 'Modo local — ' + todas.length + ' licencias';
+}
+
+function prevClave() {
+  var inst = (document.getElementById('newInst').value || 'INST').toUpperCase().replace(/\s/g, '');
+  var grupo = (document.getElementById('newGrupo').value || 'GRP').toUpperCase().replace(/\s/g, '');
+  var num = String(document.getElementById('newNum').value || '1').padStart(3, '0');
+  document.getElementById('prevClaveDiv').textContent = 'Preview: GS-' + new Date().getFullYear() + '-' + inst + '-' + grupo + '-N' + num;
+}
+
+function addClave() {
+  var nombre = document.getElementById('newNombre').value.trim();
+  var inst = document.getElementById('newInst').value.trim().toUpperCase().replace(/\s/g, '');
+  var grupo = document.getElementById('newGrupo').value.trim().toUpperCase().replace(/\s/g, '');
+  var num = String(document.getElementById('newNum').value || '1').padStart(3, '0');
+  var msg = document.getElementById('adminMsg');
+  if (!inst || !grupo) { msg.style.color = '#f44336'; msg.textContent = 'Completá Institución y Grupo.'; return; }
+  var clave = 'GS-' + new Date().getFullYear() + '-' + inst + '-' + grupo + '-N' + num;
+  var extras = getExtras();
+  if (allClaves().some(function(c){ return c.clave === clave; })) { msg.style.color = '#f44336'; msg.textContent = 'Clave ya existe.'; return; }
+  extras.push({clave: clave, nombre: nombre, inst: inst, grupo: grupo, activa: true});
+  localStorage.setItem('ponchon_extras', JSON.stringify(extras));
+  document.getElementById('newNombre').value = '';
+  document.getElementById('newInst').value = '';
+  document.getElementById('newGrupo').value = '';
+  document.getElementById('newNum').value = '';
+  document.getElementById('prevClaveDiv').textContent = '';
+  msg.style.color = '#4caf50'; msg.textContent = 'Clave creada: ' + clave;
+  renderAdmin();
+}
+
+function togClave(clave) {
+  var e = getExtras();
+  var i = e.findIndex(function(x){ return x.clave === clave; });
+  if (i >= 0) { e[i].activa = !e[i].activa; localStorage.setItem('ponchon_extras', JSON.stringify(e)); renderAdmin(); }
+}
+
+function delClave(clave) {
+  if (!confirm('Eliminar ' + clave + '?')) return;
+  localStorage.setItem('ponchon_extras', JSON.stringify(getExtras().filter(function(x){ return x.clave !== clave; })));
+  renderAdmin();
+}
+
+function exportClaves() {
+  var lines = ['clave,nombre,inst,grupo,activa'].concat(allClaves().map(function(c){
+    return [c.clave, c.nombre||'', c.inst||'', c.grupo||'', String(c.activa !== false)].join(',');
+  }));
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')], {type: 'text/plain'}));
+  a.download = 'licencias_ponchon.txt';
+  a.click();
+}
+
+function openAdminModal() {
+  document.getElementById('inputAdminAcceso').value = '';
+  document.getElementById('errorAdmin').textContent = '';
+  document.getElementById('modalAdminAcceso').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('inputAdminAcceso').focus(); }, 80);
+}
+
+function closeAdminModal() { document.getElementById('modalAdminAcceso').style.display = 'none'; }
+
+function checkAdmin() {
+  var v = document.getElementById('inputAdminAcceso').value.trim().toUpperCase();
+  if (v === CADMIN) { closeAdminModal(); openAdmin(); }
+  else { document.getElementById('errorAdmin').textContent = 'Clave incorrecta.'; setTimeout(function(){ document.getElementById('errorAdmin').textContent = ''; }, 2000); }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('modalAdminAcceso').addEventListener('click', function(e){ if (e.target === this) closeAdminModal(); });
+  try {
+    var g = JSON.parse(sessionStorage.getItem(SSKEY) || 'null');
+    if (g && g.clave) { licActiva = g; showBadge(g); document.getElementById('pantallaActivacion').classList.add('oculto'); }
+  } catch(e) {}
+});
+</script>
+
+<div style="margin-top:30px;border-top:1px solid #1e3048;padding:16px 20px;background:#0a1018;font-size:11px;color:#556677;line-height:1.8;border-radius:0 0 8px 8px;">
+  <div style="font-weight:bold;font-size:12px;color:#7eb8f7;margin-bottom:6px;">LICENCIA DE USO &mdash; SOFTWARE EDUCATIVO</div>
+  <div>Nombre: Calculadora P&oacute;nchon-Savarit &mdash; M&eacute;todo Ent&aacute;lpico Riguroso</div>
+  <div style="margin-top:4px;">Autor: Gustavo S&aacute;nchez &nbsp; A&ntilde;o: 2026</div>
+  <div style="margin-top:6px;">Software educativo para la ense&ntilde;anza de ingenier&iacute;a qu&iacute;mica. Licencia personal, no exclusiva y no transferible. Prohibido copiar, redistribuir, modificar o vender sin autorizaci&oacute;n.</div>
+  <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <span style="font-weight:bold;color:#4a9eff;">&copy; 2026 Gustavo S&aacute;nchez &mdash; Todos los derechos reservados.</span>
+    <span onclick="openAdminModal()" title="Acceso admin" style="cursor:pointer;opacity:0.2;font-size:15px;transition:opacity .2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='0.2'">&#128737;&#65039;</span>
+  </div>
+</div>
+
+</body>
+</html>
